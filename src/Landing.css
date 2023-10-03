@@ -1,0 +1,18 @@
+/* You can adjust the CSS based on your requirements */
+.landing-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .input-container {
+    background-color: rgba(255, 255, 255, 0.8); /* Add a slight white background to make the text visible */
+    padding: 20px;
+    border-radius: 5px;
+  }
+  
+  input {
+    margin: 10px 0;
+  }
+  

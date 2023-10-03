@@ -1,0 +1,82 @@
+.story-container {
+    padding: 20px;
+    max-width: 800px;
+    margin: auto;
+    background-size: cover; /* Ensure the background covers the entire element */
+    background-position: center; /* Center the background image */
+    border-radius: 10px; /* Optional: for rounded corners */
+    overflow: hidden;
+  }
+  
+  .story-intro {
+    margin-bottom: 20px;
+    background-color: #ffffff;
+  }
+  
+  .story-image {
+    width: 100%;
+    max-width: 300px;
+    display: block;
+    margin: 0 auto 20px auto;
+    border-radius: 10px;
+  }
+  
+  .message-container {
+    height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 1); /* Add a slight white background to ensure text visibility */
+  }
+  
+  .user-message {
+    color: blue;
+    background-color: rgba(0, 0, 255, 0.1); /* Added this for background color with low opacity */
+    padding: 5px;
+    margin: 5px 0;
+    border-radius: 5px; /* Optional: for rounded corners */
+  }
+  
+  .system-message {
+    color: green;
+    background-color: rgba(0, 128, 0, 0.1); /* Added this for background color with low opacity */
+    padding: 5px;
+    margin: 5px 0;
+    border-radius: 5px; /* Optional: for rounded corners */
+  }
+  
+  .message-input,
+  .submit-button,
+  .back-button {
+    margin: 10px;
+  }
+  
+  .overlay {
+    position: fixed; /* Fixed position */
+    top: 0;
+    left: 0;
+    height: 100vh; /* Full height of the viewport */
+    width: 100vw; /* Full width of the viewport */
+    z-index: -1; /* Place it behind the content */
+    background-size: cover;
+    background-position: center;
+    opacity: 0.5; /* Adjust opacity as needed */
+  }
+
+  .actions-container {
+    margin-bottom: 10px;
+  }
+  
+  .actions-container button {
+    margin-right: 10px;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .actions-container button:hover {
+    background-color: lightgray;
+  }
