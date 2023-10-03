@@ -25,7 +25,8 @@ export default function Story() {
 
   const model = new ChatOpenAI({
     openAIApiKey: process.env.REACT_APP_OPENAI_API_KEY,
-    modelName: "gpt-4",
+    modelName: "gpt-3.5-turbo",
+    // modelName: "gpt-4",
   });
 
   const messagesEndRef = useRef(null); // Create a ref
