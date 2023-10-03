@@ -1,13 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import image from './img.png'; 
 import './Story.css';
 import { ChatOpenAI } from "langchain/chat_models/openai"; 
 import { ChatPromptTemplate } from "langchain/prompts";
-import { OpenAI } from "langchain/llms/openai";
-import { BufferMemory, ChatMessageHistory } from "langchain/memory";
-import { HumanMessage, SystemMessage, BasePromptValue, BaseMessage, AIMessage } from "langchain/schema";
-import { ConversationChain } from "langchain/chains";
 import {OpenAI as OAI} from "openai";
 
 export default function Story() {
@@ -97,6 +92,7 @@ export default function Story() {
     // console.log("result", result);
     // const parsed = JSON.parse(result.content)
     // setMessages([...messages, { text: parsed["story-text"], sender: 'system' }]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
