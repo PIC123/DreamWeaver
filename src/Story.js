@@ -18,8 +18,6 @@ export default function Story() {
   const location = useLocation();
   const setting = location.state.setting;  // Getting the setting entered by the user
 
-  console.log("apiKey", process.env.REACT_APP_OPENAI_API_KEY);
-
   const oai = new OAI({
     apiKey: process.env.REACT_APP_OPENAI_API_KEY,
     dangerouslyAllowBrowser: true,
@@ -64,24 +62,19 @@ export default function Story() {
         n: 1,
         size: "512x512",
     });
-    console.log("response", response);
     setImgSrc(response.data[0].url);
   }
 
   useEffect(() => {
-    console.log('The story page has loaded for the first time.');
     async function fetchData() {
-        console.log("promptMessages", chatPrompt.promptMessages);
         const formatMessages = await chatPrompt.formatMessages({setting: setting});
         const result = await model.predictMessages(formatMessages);
-        console.log("result", result);
         const parsed = JSON.parse(result.content)
         await setMessages([{ text: parsed["story-text"], sender: 'system' }]);
         await setMessageHistory([...messageHistory, ["ai",parsed["story-text"]]]);
         // messageHistory.push(["ai",result.content])
         await getImage(parsed["dall-e-prompt"]);
         await setPossibleActions(parsed["possible-actions"]);
-        console.log("messageHistory1: ", messageHistory);
         scrollToBottom(); // Scroll to bottom when component mounts
         // setImgSrc(image_url);
     }
@@ -110,9 +103,6 @@ export default function Story() {
 
   // Handler for possible action buttons
   const handleActionClick = async (action) => {
-    console.log('Action clicked:', action);
-    console.log("setting", setting);
-    console.log("messageHistory2:", messageHistory);
     const chatPrompt = ChatPromptTemplate.fromMessages([...messageHistory,
             ["human", humanTemplate],
           ]);
@@ -124,12 +114,9 @@ export default function Story() {
         setting: setting,
         action: action + "and respond ONLY with the JSON defined above",
         });
-    console.log("formattedChatPrompt", formattedChatPrompt);
     await setMessages([...messages, { text: action, sender: 'human' }, { text: "Loading...", sender: 'system' }]);
-    console.log("messageHistory3:", messageHistory);
     const result = await model.predictMessages(formattedChatPrompt);
     // const result = await chain.invoke({input: input});
-    console.log("result", result);
     const parsed = JSON.parse(result.content)
     setInput('');
     await setMessages([...messages, { text: action, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]);
@@ -138,7 +125,6 @@ export default function Story() {
     messageHistory.push(["ai",parsed["story-text"]])
     await getImage(parsed["dall-e-prompt"]);
     await setPossibleActions(parsed["possible-actions"]);
-    console.log("messageHistory: ", messageHistory);
     // You can add functionality here to handle action button clicks
   };
 
@@ -149,9 +135,6 @@ export default function Story() {
   const handleSubmit = async () => {
     // setMessages([...messages, { text: input, sender: 'user' }]);
     // const chatModelResult = await chatModel.predict(text);
-    console.log("input", input);
-    console.log("setting", setting);
-    console.log("messageHistory2:", messageHistory);
     const chatPrompt = ChatPromptTemplate.fromMessages([...messageHistory,
             ["human", humanTemplate],
           ]);
@@ -163,12 +146,9 @@ export default function Story() {
         setting: setting,
         action: input + "and respond ONLY with the JSON defined above",
         });
-    console.log("formattedChatPrompt", formattedChatPrompt);
     await setMessages([...messages, { text: input, sender: 'human' }, { text: "Loading...", sender: 'system' }]);
-    console.log("messageHistory3:", messageHistory);
     const result = await model.predictMessages(formattedChatPrompt);
     // const result = await chain.invoke({input: input});
-    console.log("result", result);
     const parsed = JSON.parse(result.content)
     setInput('');
     await setMessages([...messages, { text: input, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]);
@@ -177,7 +157,6 @@ export default function Story() {
     messageHistory.push(["ai",parsed["story-text"]])
     await getImage(parsed["dall-e-prompt"]);
     await setPossibleActions(parsed["possible-actions"]);
-    console.log("messageHistory: ", messageHistory);
     // setImgSrc(image_url);
     // Here, you may want to implement a logic to add a system response
   };
