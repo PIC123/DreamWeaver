@@ -26,7 +26,7 @@ export default function Landing() {
       }}
     >
       <div className="input-container">
-        <p>Enter a setting for a new story:</p>
+        <p>Enter a setting for a new adventure:</p>
         <input type="text" value={setting} onChange={handleChange} placeholder="Enter a setting" />
         <button onClick={handleSubmit}>Start</button>
       </div>
