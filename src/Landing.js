@@ -12,9 +12,9 @@ export default function Landing() {
     setSetting(e.target.value);
   };
 
-  const handleIdChange = (e) => {
-    setStoryId(e.target.value);
-  };    
+  // const handleIdChange = (e) => {
+  //   setStoryId(e.target.value);
+  // };    
 
   const handleSubmit = () => {
     navigate('/story', { state: { setting, storyId } });
