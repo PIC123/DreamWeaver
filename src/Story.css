@@ -123,3 +123,26 @@
   max-height: 150px; /* Adjust as needed */
   object-fit: cover; /* Keeps the aspect ratio of the image */
 }
+
+button {
+  padding: 10px 15px;
+  background-color: #4CAF50; /* A pleasant green, you can choose your own color */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px; /* Adjust as needed */
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.3s;
+}
+
+button:hover {
+  background-color: #45a049; /* A slightly darker shade for hover */
+  transform: translateY(-2px); /* Slight raise effect */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Soft shadow for depth */
+}
+
+button:active {
+  background-color: #3e8e41; /* Even darker for active (clicked) state */
+  transform: translateY(-1px); /* Less raise */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
