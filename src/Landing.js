@@ -17,7 +17,7 @@ export default function Landing() {
   // };    
 
   const handleSubmit = () => {
-    navigate('/story', { state: { setting, storyId } });
+    navigate('/story', { state: { setting } });
   };
 
   const handleKeyPress = (event) => {
