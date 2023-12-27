@@ -5,7 +5,7 @@ import './Landing.css';
 
 export default function Landing() {
   const [setting, setSetting] = useState('');
-  const [storyId, setStoryId] = useState('');
+  // const [storyId, setStoryId] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
