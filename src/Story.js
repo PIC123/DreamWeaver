@@ -10,6 +10,8 @@ export default function Story() {
   const systemTemplate = "Act as a terminal for a zork clone text based dungeon adventure game based in {setting}. Respond ONLY with descriptions of the environment and react to basic commands like moving in a direction or picking up items. Begin the story in a randomly generated space and describe what the player sees. Only return json objects as responses. The objects should have the parameters \"story-text\", which is just a string of the generated description, \"possible-actions\", which is a list of possible actions that the user can take, \"location\" which is an x,y pair that denotes the Euclidian distance from the starting location in steps with north and east being the positive directions. Also include the parameter \"dall-e-prompt\" which contains a generated prompt for the generative art ai dall-e to produce an artistic storybook illustration of the current description with lots of details in a hand-drawn style. Keep track of the user's actions in a parameter called \"action-history\" that is a list of the actions that the user has take so far, with the corresponding location that the action happened.";
   const STORAGE_BASE_URL = 'https://dreamweaverdata.blob.core.windows.net/story-images/';
 
+  const PARTITION = "TestStories";
+
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,29 +62,41 @@ export default function Story() {
 
   var chatPrompt= ChatPromptTemplate.fromMessages([["system", systemTemplate]]);
 
-  // async function loadStory() {
-  //   const data = {
-  //     "storyID": storyIdLoaded
-  //   }
-  //   const resp = await fetch('https://dreamweaver-api.azurewebsites.net/api/LoadStory', {
-  //     method: 'POST', // or 'PUT'
-  //     headers: {
-  //         "Access-Control-Allow-Origin": "*",
-  //         "Access-Control-Allow-Methods": "DELETE, POST, GET, OPTIONS",
-  //         "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-  //         'Content-Type': 'application/json',
-  //     },
-  //     body: JSON.stringify(data),
-  //   })
-  //   const resp_json = await resp.json()
-  //   setImgSrc(resp_json.imgURL);
-  //   setStoryImages(resp_json.storyImages);
-  //   setMessageHistory(resp_json.messageHistory);
-  //   setMessages(resp_json.messages);
-  //   setPossibleActions(resp_json.possibleActions);
-  //   chatPrompt = ChatPromptTemplate.fromMessages([...resp.messageHistory,]);
+  async function loadStory() {
+    setStoryId(storyIdLoaded);
+    const data = {
+      "storyID": storyIdLoaded,
+      "partition": PARTITION
+    }
+    const resp = await fetch('https://dreamweaver-api.azurewebsites.net/api/LoadStory', {
+      method: 'POST', // or 'PUT'
+      headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "DELETE, POST, GET, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+          'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    })
+    const resp_json = await resp.json()
+    console.log("Loaded Story:");
+    console.log(resp_json);
 
-  // }
+    // const loadedJson = JSON.parse(resp_json);
+    // console.log(loadedJson);
+    
+    setImgSrc(resp_json.imgURL);
+    setStoryImages(JSON.parse(resp_json.storyImages));
+    const loadedHistory = JSON.parse(resp_json.messageHistory);
+    setMessageHistory(loadedHistory);
+    setMessages(JSON.parse(resp_json.messages));
+    setPossibleActions(JSON.parse(resp_json.possibleActions));
+    chatPrompt = ChatPromptTemplate.fromMessages([...loadedHistory,]);
+    console.log(storyImages);
+    console.log(messageHistory);
+    console.log(messages);
+    console.log(possibleActions);
+  }
 
   async function savePrompt(prompt) {
     setCurrentPrompt(prompt);
@@ -102,27 +116,30 @@ export default function Story() {
     return resp
   }
 
-  // async function saveStory() {
-  //   const data = {
-  //     "storyID": storyId,
-  //     "imgURL": imgSrc,
-  //     "storyImages": storyImages,
-  //     "messageHistory": messageHistory,
-  //     "messages": messages,
-  //     "possibleActions": possibleActions
-  //   }
-  //   const resp = await fetch('https://dreamweaver-api.azurewebsites.net/api/StoreData', {
-  //     method: 'POST', // or 'PUT'
-  //     headers: {
-  //         "Access-Control-Allow-Origin": "*",
-  //         "Access-Control-Allow-Methods": "DELETE, POST, GET, OPTIONS",
-  //         "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-  //         'Content-Type': 'application/json',
-  //     },
-  //     body: JSON.stringify(data),
-  //   });
-  //   return resp
-  // }
+  async function saveStory(storyID) {
+    console.log("Saving Story");
+    const data = {
+      "storyID": storyID,
+      "partition": PARTITION,
+      "imgURL": imgSrc,
+      "storyImages": storyImages,
+      "messageHistory": messageHistory,
+      "messages": messages,
+      "possibleActions": possibleActions
+    }
+    console.log(data);
+    const resp = await fetch('https://dreamweaver-api.azurewebsites.net/api/StoreData', {
+      method: 'POST', // or 'PUT'
+      headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "DELETE, POST, GET, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+          'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    return resp
+  }
 
   async function getImage(prompt, storyID) {
     // TODO: Add change storyID var to be less confusing
@@ -153,6 +170,9 @@ export default function Story() {
     return resp
   }
 
+  //await setMessages([{ text: parsed["story-text"], sender: 'system' }]);
+  // await setMessageHistory([...messageHistory, ["ai",parsed["story-text"]]]);
+
   useEffect(() => {
     async function fetchData() {
         const new_story_id = Math.random().toString(36).substr(2, 9);
@@ -161,25 +181,25 @@ export default function Story() {
         const formatMessages = await chatPrompt.formatMessages({setting: setting});
         const result = await model.predictMessages(formatMessages);
         const parsed = JSON.parse(result.content)
-        await savePrompt(parsed["dall-e-prompt"]);
-        await setMessages([{ text: parsed["story-text"], sender: 'system' }]);
-        await setMessageHistory([...messageHistory, ["ai",parsed["story-text"]]]);
-        // await handleSpeech(parsed["story-text"]);
-        await getImage(parsed["dall-e-prompt"], new_story_id);
-        await setPossibleActions(parsed["possible-actions"]);
-        scrollToBottom(); // Scroll to bottom when component mounts
-        // await saveStory();
+        savePrompt(parsed["dall-e-prompt"])
+          .then(setMessages([{ text: parsed["story-text"], sender: 'system' }]))
+          .then(setMessageHistory([...messageHistory, ["ai",parsed["story-text"]]]))
+          .then(getImage(parsed["dall-e-prompt"], new_story_id))
+          .then(setPossibleActions(parsed["possible-actions"]))
+          // .then(saveStory(new_story_id))
+          .then(scrollToBottom());
     }
-    console.log(storyIdLoaded);
-    fetchData();
-    // if (storyIdLoaded !== undefined) {
-    //   console.log("Loading story with id:" + storyIdLoaded);
-    //   loadStory();
-    // } else {
-    //   setStoryId(Math.random().toString(36).substr(2, 9));
-    //   console.log("Generating new story with id:" + storyId);
-    //   fetchData();
-    // }
+    console.log("storyIdLoaded: " + storyIdLoaded);
+    console.log(storyIdLoaded === '');
+    // fetchData();
+    if (storyIdLoaded !== '') {
+      console.log("Loading story with id:" + storyIdLoaded);
+      loadStory();
+    } else {
+      // setStoryId(Math.random().toString(36).substr(2, 9));
+      // console.log("Generating new story with id:" + storyId);
+      fetchData();
+    }
     if ('webkitSpeechRecognition' in window) {
       const recognition = new window.webkitSpeechRecognition();
       recognition.continuous = true;
@@ -204,6 +224,8 @@ export default function Story() {
 
   useEffect(() => {
     scrollToEnd(); // Scroll to bottom when messages state changes
+    saveStory(storyId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storyImages]);
   
   const humanTemplate = "{action} and respond ONLY with the JSON defined above";
@@ -222,13 +244,24 @@ export default function Story() {
     const result = await model.predictMessages(formattedChatPrompt);
     const parsed = JSON.parse(result.content)
     setInput('');
-    await savePrompt(parsed["dall-e-prompt"]);
-    await setMessages([...messages, { text: action, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]);
-    messageHistory.push(["human", action]);
-    messageHistory.push(["ai",parsed["story-text"]])
+    savePrompt(parsed["dall-e-prompt"])
+    .then(setMessages([...messages, { text: action, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]))
+    .then(() =>{
+      messageHistory.push(["human", action]);
+      messageHistory.push(["ai",parsed["story-text"]]);
+    }).then(getImage(parsed["dall-e-prompt"], storyId))
+    .then(setPossibleActions(parsed["possible-actions"]));
+    // .then(saveStory(storyId));
     // await handleSpeech(parsed["story-text"]);
-    await getImage(parsed["dall-e-prompt"], storyId);
-    await setPossibleActions(parsed["possible-actions"]);
+    // ------------------------------
+    // await savePrompt(parsed["dall-e-prompt"]);
+    // await setMessages([...messages, { text: action, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]);
+    // messageHistory.push(["human", action]);
+    // messageHistory.push(["ai",parsed["story-text"]])
+    // // await handleSpeech(parsed["story-text"]);
+    // await getImage(parsed["dall-e-prompt"], storyId);
+    // await setPossibleActions(parsed["possible-actions"]);
+    // await saveStory(storyId);
     // You can add functionality here to handle action button clicks
     // const resp = await saveStory();
     // console.log(resp);
@@ -256,14 +289,14 @@ export default function Story() {
     const result = await model.predictMessages(formattedChatPrompt);
     const parsed = JSON.parse(result.content)
     setInput('');
-    await savePrompt(parsed["dall-e-prompt"]);
-    await setMessages([...messages, { text: input, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]);
-    messageHistory.push(["human", input]);
-    messageHistory.push(["ai",parsed["story-text"]]);
-    // await handleSpeech(parsed["story-text"]);
-    await getImage(parsed["dall-e-prompt"], storyId);
-    await setPossibleActions(parsed["possible-actions"]);
-    console.log(messages);
+    savePrompt(parsed["dall-e-prompt"])
+      .then(setMessages([...messages, { text: input, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]))
+      .then(() =>{
+        messageHistory.push(["human", input]);
+        messageHistory.push(["ai",parsed["story-text"]]);
+      }).then(getImage(parsed["dall-e-prompt"], storyId))
+      .then(setPossibleActions(parsed["possible-actions"]));
+      // .then(saveStory(storyId));
     // const resp = await saveStory();
     // console.log(resp);
     // Here, you may want to implement a logic to add a system response
