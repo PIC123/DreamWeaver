@@ -60,29 +60,29 @@ export default function Story() {
 
   var chatPrompt= ChatPromptTemplate.fromMessages([["system", systemTemplate]]);
 
-  async function loadStory() {
-    const data = {
-      "storyID": storyIdLoaded
-    }
-    const resp = await fetch('https://dreamweaver-api.azurewebsites.net/api/LoadStory', {
-      method: 'POST', // or 'PUT'
-      headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "DELETE, POST, GET, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-          'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    })
-    const resp_json = await resp.json()
-    setImgSrc(resp_json.imgURL);
-    setStoryImages(resp_json.storyImages);
-    setMessageHistory(resp_json.messageHistory);
-    setMessages(resp_json.messages);
-    setPossibleActions(resp_json.possibleActions);
-    chatPrompt = ChatPromptTemplate.fromMessages([...resp.messageHistory,]);
+  // async function loadStory() {
+  //   const data = {
+  //     "storyID": storyIdLoaded
+  //   }
+  //   const resp = await fetch('https://dreamweaver-api.azurewebsites.net/api/LoadStory', {
+  //     method: 'POST', // or 'PUT'
+  //     headers: {
+  //         "Access-Control-Allow-Origin": "*",
+  //         "Access-Control-Allow-Methods": "DELETE, POST, GET, OPTIONS",
+  //         "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+  //         'Content-Type': 'application/json',
+  //     },
+  //     body: JSON.stringify(data),
+  //   })
+  //   const resp_json = await resp.json()
+  //   setImgSrc(resp_json.imgURL);
+  //   setStoryImages(resp_json.storyImages);
+  //   setMessageHistory(resp_json.messageHistory);
+  //   setMessages(resp_json.messages);
+  //   setPossibleActions(resp_json.possibleActions);
+  //   chatPrompt = ChatPromptTemplate.fromMessages([...resp.messageHistory,]);
 
-  }
+  // }
 
   async function savePrompt(prompt) {
     setCurrentPrompt(prompt);
@@ -102,27 +102,27 @@ export default function Story() {
     return resp
   }
 
-  async function saveStory() {
-    const data = {
-      "storyID": storyId,
-      "imgURL": imgSrc,
-      "storyImages": storyImages,
-      "messageHistory": messageHistory,
-      "messages": messages,
-      "possibleActions": possibleActions
-    }
-    const resp = await fetch('https://dreamweaver-api.azurewebsites.net/api/StoreData', {
-      method: 'POST', // or 'PUT'
-      headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "DELETE, POST, GET, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-          'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-    return resp
-  }
+  // async function saveStory() {
+  //   const data = {
+  //     "storyID": storyId,
+  //     "imgURL": imgSrc,
+  //     "storyImages": storyImages,
+  //     "messageHistory": messageHistory,
+  //     "messages": messages,
+  //     "possibleActions": possibleActions
+  //   }
+  //   const resp = await fetch('https://dreamweaver-api.azurewebsites.net/api/StoreData', {
+  //     method: 'POST', // or 'PUT'
+  //     headers: {
+  //         "Access-Control-Allow-Origin": "*",
+  //         "Access-Control-Allow-Methods": "DELETE, POST, GET, OPTIONS",
+  //         "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+  //         'Content-Type': 'application/json',
+  //     },
+  //     body: JSON.stringify(data),
+  //   });
+  //   return resp
+  // }
 
   async function getImage(prompt, storyID) {
     // TODO: Add change storyID var to be less confusing
@@ -316,6 +316,9 @@ const handleSpeech = async (text) => {
       console.error('Error fetching text-to-speech from ElevenLabs:', error);
   }
 };
+
+console.log(handleSpeech);
+console.log(currentPrompt);
 
 useEffect(() => {
   if (audioUrl && audioRef.current) {
