@@ -1,18 +1,332 @@
-/* You can adjust the CSS based on your requirements */
-.landing-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
+/* Landing wrapper */
+.landing-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  padding: 20px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  overflow: hidden;
+}
+
+/* Background image with blur */
+.landing-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(15px);
+  opacity: 0.2;
+  z-index: 0;
+}
+
+/* Book cover container */
+.book-cover {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 600px;
+  aspect-ratio: 3 / 4;
+  background: linear-gradient(135deg, #8b7355 0%, #6d5c47 100%);
+  border-radius: 12px;
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.1),
+    inset 0 -2px 30px rgba(0, 0, 0, 0.3);
+  padding: 40px;
+  animation: bookAppear 1s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes bookAppear {
+  from {
+    transform: scale(0.9) rotateY(-20deg);
+    opacity: 0;
   }
-  
-  .input-container {
-    background-color: rgba(255, 255, 255, 0.8); /* Add a slight white background to make the text visible */
-    padding: 20px;
-    border-radius: 5px;
+  to {
+    transform: scale(1) rotateY(0deg);
+    opacity: 1;
   }
-  
-  input {
-    margin: 10px 0;
+}
+
+/* Leather texture overlay */
+.book-cover::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.03) 2px,
+      rgba(0, 0, 0, 0.03) 4px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.03) 2px,
+      rgba(0, 0, 0, 0.03) 4px
+    );
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Decorative border */
+.cover-border {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  border: 3px solid #d4af37;
+  border-radius: 8px;
+  padding: 40px 30px;
+  background: rgba(0, 0, 0, 0.1);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Title section */
+.cover-title-section {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.cover-title {
+  font-family: 'Georgia', 'Garamond', serif;
+  font-size: 3.5em;
+  font-weight: 700;
+  color: #d4af37;
+  margin: 0 0 15px 0;
+  text-shadow:
+    2px 2px 4px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(212, 175, 55, 0.3);
+  letter-spacing: 3px;
+  line-height: 1.2;
+}
+
+.cover-subtitle {
+  font-size: 1.2em;
+  color: #f4f1ea;
+  font-style: italic;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+  letter-spacing: 2px;
+  margin-bottom: 15px;
+}
+
+.cover-ornament {
+  font-size: 1.5em;
+  color: #d4af37;
+  letter-spacing: 15px;
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
+}
+
+/* Content section */
+.cover-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 25px;
+}
+
+.story-prompt,
+.story-continue {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.prompt-label {
+  font-family: 'Georgia', serif;
+  font-size: 1.1em;
+  color: #f4f1ea;
+  font-weight: 600;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  letter-spacing: 1px;
+}
+
+.setting-input,
+.story-id-input {
+  padding: 15px 20px;
+  border: 2px solid rgba(212, 175, 55, 0.4);
+  border-radius: 8px;
+  background: rgba(249, 247, 241, 0.95);
+  color: #2c2c2c;
+  font-family: 'Georgia', serif;
+  font-size: 1em;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.setting-input:focus,
+.story-id-input:focus {
+  outline: none;
+  border-color: #d4af37;
+  background: white;
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.1),
+    0 0 0 4px rgba(212, 175, 55, 0.2);
+}
+
+.setting-input::placeholder,
+.story-id-input::placeholder {
+  color: #999;
+  font-style: italic;
+  font-size: 0.95em;
+}
+
+/* Start button */
+.start-button {
+  padding: 18px 40px;
+  background: linear-gradient(135deg, #d4af37 0%, #b8941f 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Georgia', serif;
+  font-size: 1.3em;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  letter-spacing: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.start-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.start-button:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.start-button:hover {
+  background: linear-gradient(135deg, #e6c24a 0%, #c9a431 100%);
+  transform: translateY(-3px);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.start-button:active {
+  transform: translateY(-1px);
+  box-shadow:
+    0 5px 15px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.button-text {
+  position: relative;
+  z-index: 1;
+}
+
+.button-icon {
+  position: relative;
+  z-index: 1;
+  font-size: 1.2em;
+  transition: transform 0.3s ease;
+}
+
+.start-button:hover .button-icon {
+  transform: scale(1.2) rotate(10deg);
+}
+
+/* Footer ornament */
+.cover-footer {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.footer-ornament {
+  font-size: 2em;
+  color: #d4af37;
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
+  opacity: 0.7;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .book-cover {
+    max-width: 90vw;
+    padding: 30px 20px;
   }
-  
+
+  .cover-border {
+    padding: 30px 20px;
+  }
+
+  .cover-title {
+    font-size: 2.5em;
+    letter-spacing: 2px;
+  }
+
+  .cover-subtitle {
+    font-size: 1em;
+    letter-spacing: 1px;
+  }
+
+  .cover-ornament {
+    font-size: 1.2em;
+    letter-spacing: 10px;
+  }
+
+  .prompt-label {
+    font-size: 1em;
+  }
+
+  .setting-input,
+  .story-id-input {
+    padding: 12px 15px;
+    font-size: 0.95em;
+  }
+
+  .start-button {
+    padding: 15px 30px;
+    font-size: 1.1em;
+    letter-spacing: 1px;
+  }
+}
+
+@media (max-width: 480px) {
+  .cover-title {
+    font-size: 2em;
+  }
+
+  .cover-subtitle {
+    font-size: 0.9em;
+  }
+
+  .start-button {
+    flex-direction: column;
+    gap: 10px;
+  }
+}

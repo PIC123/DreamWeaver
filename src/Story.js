@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './Story.css';
-import { ChatOpenAI } from "langchain/chat_models/openai"; 
-import { ChatPromptTemplate } from "langchain/prompts";
 import {OpenAI as OAI} from "openai";
 
 export default function Story() {
@@ -41,12 +39,6 @@ export default function Story() {
     dangerouslyAllowBrowser: true,
   });
 
-  const model = new ChatOpenAI({
-    openAIApiKey: process.env.REACT_APP_OPENAI_API_KEY,
-    // modelName: "gpt-3.5-turbo",
-    modelName: "gpt-4",
-  });
-
   const messagesEndRef = useRef(null); // Create a ref
   const imgsEndRef = useRef(null); // Create a ref
   const scrollToBottom = () => {
@@ -60,7 +52,15 @@ export default function Story() {
     imgsEndRef.current.scrollIntoView({ behavior: 'smooth' });
   };
 
-  var chatPrompt= ChatPromptTemplate.fromMessages([["system", systemTemplate]]);
+  // Helper function to generate story using OpenAI directly
+  async function generateStoryWithOpenAI(messages) {
+    const response = await oai.chat.completions.create({
+      model: "gpt-4",
+      messages: messages,
+      temperature: 0.7,
+    });
+    return response.choices[0].message.content;
+  }
 
   async function loadStory() {
     setStoryId(storyIdLoaded);
@@ -91,7 +91,6 @@ export default function Story() {
     setMessageHistory(loadedHistory);
     setMessages(JSON.parse(resp_json.messages));
     setPossibleActions(JSON.parse(resp_json.possibleActions));
-    chatPrompt = ChatPromptTemplate.fromMessages([...loadedHistory,]);
     console.log(storyImages);
     console.log(messageHistory);
     console.log(messages);
@@ -178,26 +177,34 @@ export default function Story() {
         const new_story_id = Math.random().toString(36).substr(2, 9);
         setStoryId(new_story_id);
         console.log("Generating new story with id:" + new_story_id);
-        const formatMessages = await chatPrompt.formatMessages({setting: setting});
-        const result = await model.predictMessages(formatMessages);
-        const parsed = JSON.parse(result.content)
+
+        // Build messages array for OpenAI
+        const initialMessages = [
+          {
+            role: "system",
+            content: systemTemplate.replace("{setting}", setting)
+          }
+        ];
+
+        const resultContent = await generateStoryWithOpenAI(initialMessages);
+        const parsed = JSON.parse(resultContent)
+
         savePrompt(parsed["dall-e-prompt"])
           .then(setMessages([{ text: parsed["story-text"], sender: 'system' }]))
-          .then(setMessageHistory([...messageHistory, ["ai",parsed["story-text"]]]))
+          .then(setMessageHistory([
+            {role: "system", content: systemTemplate.replace("{setting}", setting)},
+            {role: "assistant", content: parsed["story-text"]}
+          ]))
           .then(getImage(parsed["dall-e-prompt"], new_story_id))
           .then(setPossibleActions(parsed["possible-actions"]))
-          // .then(saveStory(new_story_id))
           .then(scrollToBottom());
     }
     console.log("storyIdLoaded: " + storyIdLoaded);
     console.log(storyIdLoaded === '');
-    // fetchData();
     if (storyIdLoaded !== '') {
       console.log("Loading story with id:" + storyIdLoaded);
       loadStory();
     } else {
-      // setStoryId(Math.random().toString(36).substr(2, 9));
-      // console.log("Generating new story with id:" + storyId);
       fetchData();
     }
     if ('webkitSpeechRecognition' in window) {
@@ -228,43 +235,33 @@ export default function Story() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storyImages]);
   
-  const humanTemplate = "{action} and respond ONLY with the JSON defined above";
-
   // Handler for possible action buttons
   const handleActionClick = async (action) => {
-    const chatPrompt = ChatPromptTemplate.fromMessages([...messageHistory,
-            ["human", humanTemplate],
-          ]);
-    const formattedChatPrompt = await chatPrompt.formatMessages({
-        setting: setting,
-        action: action,
-        });
     await setMessages([...messages, { text: action, sender: 'human' }, { text: "Loading...", sender: 'system' }]);
-    console.log(formattedChatPrompt);
-    const result = await model.predictMessages(formattedChatPrompt);
-    const parsed = JSON.parse(result.content)
+
+    // Build messages array for OpenAI with full conversation history
+    const conversationMessages = [
+      ...messageHistory,
+      {
+        role: "user",
+        content: `${action} and respond ONLY with the JSON defined above`
+      }
+    ];
+
+    const resultContent = await generateStoryWithOpenAI(conversationMessages);
+    const parsed = JSON.parse(resultContent);
+
     setInput('');
     savePrompt(parsed["dall-e-prompt"])
     .then(setMessages([...messages, { text: action, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]))
-    .then(() =>{
-      messageHistory.push(["human", action]);
-      messageHistory.push(["ai",parsed["story-text"]]);
+    .then(() => {
+      setMessageHistory([
+        ...messageHistory,
+        {role: "user", content: action},
+        {role: "assistant", content: parsed["story-text"]}
+      ]);
     }).then(getImage(parsed["dall-e-prompt"], storyId))
     .then(setPossibleActions(parsed["possible-actions"]));
-    // .then(saveStory(storyId));
-    // await handleSpeech(parsed["story-text"]);
-    // ------------------------------
-    // await savePrompt(parsed["dall-e-prompt"]);
-    // await setMessages([...messages, { text: action, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]);
-    // messageHistory.push(["human", action]);
-    // messageHistory.push(["ai",parsed["story-text"]])
-    // // await handleSpeech(parsed["story-text"]);
-    // await getImage(parsed["dall-e-prompt"], storyId);
-    // await setPossibleActions(parsed["possible-actions"]);
-    // await saveStory(storyId);
-    // You can add functionality here to handle action button clicks
-    // const resp = await saveStory();
-    // console.log(resp);
   };
 
   const handleKeyPress = (event) => {
@@ -278,28 +275,32 @@ export default function Story() {
   };
 
   const handleSubmit = async () => {
-    const chatPrompt = ChatPromptTemplate.fromMessages([...messageHistory,
-            ["human", humanTemplate],
-          ]);
-    const formattedChatPrompt = await chatPrompt.formatMessages({
-        setting: setting,
-        action: input + "and respond ONLY with the JSON defined above",
-        });
-    await setMessages([...messages, { text: input, sender: 'human' }, { text: "Loading...", sender: 'system' }]);
-    const result = await model.predictMessages(formattedChatPrompt);
-    const parsed = JSON.parse(result.content)
+    const userInput = input;
+    await setMessages([...messages, { text: userInput, sender: 'human' }, { text: "Loading...", sender: 'system' }]);
+
+    // Build messages array for OpenAI with full conversation history
+    const conversationMessages = [
+      ...messageHistory,
+      {
+        role: "user",
+        content: `${userInput} and respond ONLY with the JSON defined above`
+      }
+    ];
+
+    const resultContent = await generateStoryWithOpenAI(conversationMessages);
+    const parsed = JSON.parse(resultContent);
+
     setInput('');
     savePrompt(parsed["dall-e-prompt"])
-      .then(setMessages([...messages, { text: input, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]))
-      .then(() =>{
-        messageHistory.push(["human", input]);
-        messageHistory.push(["ai",parsed["story-text"]]);
+      .then(setMessages([...messages, { text: userInput, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]))
+      .then(() => {
+        setMessageHistory([
+          ...messageHistory,
+          {role: "user", content: userInput},
+          {role: "assistant", content: parsed["story-text"]}
+        ]);
       }).then(getImage(parsed["dall-e-prompt"], storyId))
       .then(setPossibleActions(parsed["possible-actions"]));
-      // .then(saveStory(storyId));
-    // const resp = await saveStory();
-    // console.log(resp);
-    // Here, you may want to implement a logic to add a system response
   };
 
   const handleBack = () => {
@@ -366,53 +367,112 @@ useEffect(() => {
 
 
   return (
-    <div className="story-container">
-      <div className="overlay" style={{
+    <div className="book-wrapper">
+      {/* Background overlay with current scene image */}
+      <div className="book-background" style={{
         backgroundImage: `url(${imgSrc})`
       }}></div>
-      <h2 className="story-intro">Welcome to your new story set in {setting}. Let the adventure begin!</h2>
-      <h4 className="story-id" style={{backgroundColor:'white'}}>Story ID: {storyId}</h4>
-      {/* <img src={imgSrc} alt="Story" className="story-image" /> */}
-      <img src={imgSrc} alt="Story" className="story-image" onClick={() => {toggleImageModal(imgSrc)}} />
+
+      {/* Main book container */}
+      <div className="book-container">
+        {/* Book spine and shadow effect */}
+        <div className="book-spine"></div>
+
+        {/* Left page - Story illustration */}
+        <div className="book-page left-page">
+          <div className="page-content">
+            <div className="illustration-frame" onClick={() => {toggleImageModal(imgSrc)}}>
+              <img src={imgSrc} alt="Story Scene" className="story-illustration" />
+              <div className="illustration-caption">Chapter Scene</div>
+            </div>
+
+            {/* Image gallery as thumbnail previews */}
+            <div className="chapter-thumbnails">
+              {storyImages.map((image, index) => (
+                <div key={index} className="thumbnail-wrapper" onClick={() => {toggleImageModal(image)}}>
+                  <img src={image} alt={`Scene ${index + 1}`} className="thumbnail-image" />
+                  <span className="thumbnail-number">{index + 1}</span>
+                </div>
+              ))}
+              <div ref={imgsEndRef}></div>
+            </div>
+
+            {/* Story ID as book edition */}
+            <div className="book-edition">Edition: {storyId}</div>
+          </div>
+        </div>
+
+        {/* Right page - Story text and interactions */}
+        <div className="book-page right-page">
+          <div className="page-content">
+            {/* Story title */}
+            <h1 className="story-title">A Tale of {setting}</h1>
+
+            {/* Story text in book format */}
+            <div className="story-text-container">
+              {messages.map((message, index) => (
+                <div key={index} className={`story-paragraph ${message.sender === 'human' ? 'action-text' : 'narrative-text'}`}>
+                  {message.sender === 'human' ? (
+                    <span className="action-marker">➤ </span>
+                  ) : null}
+                  {message.text}
+                </div>
+              ))}
+              <div ref={messagesEndRef}></div>
+            </div>
+
+            {/* Action choices styled as chapter options */}
+            <div className="choice-container">
+              <div className="choice-header">What will you do?</div>
+              <div className="choices">
+                {possibleActions.map((action, index) => (
+                  <button key={index} className="choice-button" onClick={() => handleActionClick(action)}>
+                    {action}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom action input */}
+            <div className="custom-action">
+              <input
+                type="text"
+                value={input}
+                onChange={handleInput}
+                onKeyPress={handleKeyPress}
+                className="action-input"
+                placeholder="Or describe your own action..."
+              />
+              <button onClick={handleSubmit} className="action-submit">Continue</button>
+            </div>
+
+            {/* Controls footer */}
+            <div className="page-footer">
+              <button onClick={handleBack} className="footer-button">← Close Book</button>
+              {isRecording ? (
+                <button className="footer-button recording" onClick={stopRecording}>⬤ Recording...</button>
+              ) : (
+                <button className="footer-button" onClick={startRecording}>🎤 Voice</button>
+              )}
+              {audioUrl && (
+                <audio ref={audioRef} controls src={audioUrl} className="audio-player">
+                  Your browser does not support the audio element.
+                </audio>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Image modal for enlarged view */}
       {isImageModalOpen && (
         <div className="image-modal" onClick={() => {toggleImageModal('')}}>
-          <img src={selectedImg} alt="Enlarged Story" className="enlarged-image" />
+          <div className="modal-content">
+            <img src={selectedImg} alt="Enlarged Scene" className="modal-image" />
+            <button className="modal-close" onClick={() => {toggleImageModal('')}}>✕</button>
+          </div>
         </div>
       )}
-      <div className="image-gallery">
-          {storyImages.map((image, index) => (
-              <img key={index} src={image} alt={`Story part ${index + 1}`} onClick={() => {toggleImageModal(image)}} className="gallery-story-image" />
-          ))}
-          <div ref={imgsEndRef}></div>
-      </div>
-      {audioUrl && (
-            <audio ref={audioRef} controls src={audioUrl}>
-                Your browser does not support the audio element.
-            </audio>
-        )}
-      <div className="message-container">
-        {messages.map((message, index) => (
-          <div key={index} className={message.sender === 'human' ? 'user-message' : 'system-message'}>
-            {message.text}
-          </div>
-        ))}
-        <div ref={messagesEndRef}></div>
-      </div>
-      <div className="actions-container">
-        {possibleActions.map((action, index) => (
-          <button key={index} onClick={() => handleActionClick(action)}>{action}</button>
-        ))}
-      </div>
-      <input type="text" value={input} onChange={handleInput} onKeyPress={handleKeyPress} className="message-input" />
-      <button onClick={handleSubmit} className="submit-button">Submit</button>
-      <button onClick={handleBack} className="back-button">Back</button>
-      <div className="recording-controls">
-          {isRecording ? (
-              <button style={{backgroundColor:'red'}} onClick={stopRecording}>Stop Recording</button>
-          ) : (
-              <button style={{backgroundColor:'green'}} onClick={startRecording}>Start Recording</button>
-          )}
-      </div>
     </div>
   );
 }

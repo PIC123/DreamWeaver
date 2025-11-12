@@ -1,148 +1,596 @@
-.story-container {
-    padding: 20px;
-    max-width: 800px;
-    margin: auto;
-    background-size: cover; /* Ensure the background covers the entire element */
-    background-position: center; /* Center the background image */
-    border-radius: 10px; /* Optional: for rounded corners */
-    overflow: hidden;
-  }
-  
-  .story-intro {
-    margin-bottom: 20px;
-    background-color: #ffffff;
-  }
-  
-  .story-image {
-    width: 100%;
-    max-width: 300px;
-    display: block;
-    margin: 0 auto 20px auto;
-    border-radius: 10px;
-    cursor: pointer; /* Indicates the image is clickable */
-  }
-  
-  .message-container {
-    height: 200px;
-    overflow-y: auto;
-    border: 1px solid #ccc;
-    padding: 10px;
-    margin-bottom: 20px;
-    border-radius: 5px;
-    background-color: rgba(255, 255, 255, 1); /* Add a slight white background to ensure text visibility */
-  }
-  
-  .user-message {
-    color: blue;
-    background-color: rgba(0, 0, 255, 0.1); /* Added this for background color with low opacity */
-    padding: 5px;
-    margin: 5px 0;
-    border-radius: 5px; /* Optional: for rounded corners */
-  }
-  
-  .system-message {
-    color: green;
-    background-color: rgba(0, 128, 0, 0.1); /* Added this for background color with low opacity */
-    padding: 5px;
-    margin: 5px 0;
-    border-radius: 5px; /* Optional: for rounded corners */
-  }
-  
-  .message-input,
-  .submit-button,
-  .back-button {
-    margin: 10px;
-  }
-  
-  .overlay {
-    position: fixed; /* Fixed position */
-    top: 0;
-    left: 0;
-    height: 100vh; /* Full height of the viewport */
-    width: 100vw; /* Full width of the viewport */
-    z-index: -1; /* Place it behind the content */
-    background-size: cover;
-    background-position: center;
-    opacity: 0.5; /* Adjust opacity as needed */
-  }
-
-  .actions-container {
-    margin-bottom: 10px;
-  }
-  
-  .actions-container button {
-    margin-right: 10px;
-    padding: 5px 10px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  
-  .actions-container button:hover {
-    background-color: lightgray;
-  }
-
-  .image-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent background */
-    z-index: 10; /* Make sure it's above other content */
-  }
-  
-  .enlarged-image {
-    max-width: 80%; /* Adjust as per requirement */
-    max-height: 80%;
-    margin: auto; /* Center the image */
-  }
-
-  .recording-controls button {
-    margin: 10px;
-    padding: 5px 10px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-.image-gallery {
+/* Book wrapper - full viewport */
+.book-wrapper {
+  min-height: 100vh;
   display: flex;
-  overflow-x: auto; /* Makes the gallery horizontally scrollable */
-  padding: 10px;
-  gap: 10px; /* Adds space between images */
-  justify-content: center; /* Centers the images inside the gallery */
-  align-items: center;;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
+  padding: 20px;
+  font-family: 'Georgia', 'Times New Roman', serif;
 }
 
-.gallery-story-image {
-  max-width: 30%; /* Adjust as needed */
-  max-height: 150px; /* Adjust as needed */
-  object-fit: cover; /* Keeps the aspect ratio of the image */
+/* Blurred background with current scene */
+.book-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(20px);
+  opacity: 0.3;
+  z-index: 0;
 }
 
-button {
-  padding: 10px 15px;
-  background-color: #4CAF50; /* A pleasant green, you can choose your own color */
+/* Main book container - open book effect */
+.book-container {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  max-width: 1400px;
+  width: 100%;
+  background: #f4f1ea;
+  border-radius: 8px;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: openBook 0.8s ease-out;
+}
+
+@keyframes openBook {
+  from {
+    transform: perspective(1000px) rotateY(-20deg);
+    opacity: 0;
+  }
+  to {
+    transform: perspective(1000px) rotateY(0deg);
+    opacity: 1;
+  }
+}
+
+/* Book spine in the middle */
+.book-spine {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(
+    to bottom,
+    rgba(139, 115, 85, 0.3) 0%,
+    rgba(101, 84, 63, 0.5) 50%,
+    rgba(139, 115, 85, 0.3) 100%
+  );
+  box-shadow:
+    -2px 0 3px rgba(0, 0, 0, 0.2),
+    2px 0 3px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+  transform: translateX(-50%);
+}
+
+/* Individual book pages */
+.book-page {
+  flex: 1;
+  padding: 50px 40px;
+  background: linear-gradient(
+    to right,
+    #f9f7f1 0%,
+    #f4f1ea 50%,
+    #f9f7f1 100%
+  );
+  position: relative;
+  overflow-y: auto;
+  max-height: 85vh;
+}
+
+.book-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  pointer-events: none;
+}
+
+/* Left page subtle shadow */
+.left-page::before {
+  right: 0;
+  left: auto;
+  background: linear-gradient(
+    to left,
+    rgba(0, 0, 0, 0.05) 0%,
+    transparent 20%
+  );
+}
+
+/* Right page subtle shadow */
+.right-page::before {
+  left: 0;
+  right: auto;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.05) 0%,
+    transparent 20%
+  );
+}
+
+/* Page content */
+.page-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Story title - elegant typography */
+.story-title {
+  font-family: 'Georgia', 'Garamond', serif;
+  font-size: 2.2em;
+  font-weight: 600;
+  color: #2c1810;
+  text-align: center;
+  margin: 0 0 30px 0;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #d4af37;
+  text-transform: capitalize;
+  letter-spacing: 1px;
+}
+
+/* Illustration frame on left page */
+.illustration-frame {
+  background: white;
+  padding: 15px;
+  border-radius: 4px;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+  margin-bottom: 25px;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.illustration-frame:hover {
+  transform: scale(1.02);
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.25),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.story-illustration {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 2px;
+}
+
+.illustration-caption {
+  margin-top: 10px;
+  text-align: center;
+  font-style: italic;
+  font-size: 0.9em;
+  color: #5a5a5a;
+  font-family: 'Georgia', serif;
+}
+
+/* Chapter thumbnails */
+.chapter-thumbnails {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  justify-content: center;
+}
+
+.thumbnail-wrapper {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  cursor: pointer;
+  background: white;
+  border-radius: 4px;
+  padding: 5px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.thumbnail-wrapper:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.thumbnail-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 2px;
+}
+
+.thumbnail-number {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 0.7em;
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+
+/* Book edition (Story ID) */
+.book-edition {
+  text-align: center;
+  font-size: 0.75em;
+  color: #8b7355;
+  font-style: italic;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #d4d0c8;
+}
+
+/* Story text container */
+.story-text-container {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 30px;
+  padding-right: 10px;
+  line-height: 1.8;
+  font-size: 1.05em;
+  color: #3a3a3a;
+}
+
+/* Custom scrollbar for story text */
+.story-text-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.story-text-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+.story-text-container::-webkit-scrollbar-thumb {
+  background: rgba(139, 115, 85, 0.4);
+  border-radius: 3px;
+}
+
+.story-text-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 115, 85, 0.6);
+}
+
+/* Story paragraphs */
+.story-paragraph {
+  margin-bottom: 18px;
+  text-align: justify;
+  text-indent: 25px;
+  animation: fadeIn 0.6s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Narrative text (system messages) */
+.narrative-text {
+  color: #2c2c2c;
+}
+
+/* Action text (user inputs) */
+.action-text {
+  color: #1a5490;
+  font-weight: 500;
+  text-indent: 0;
+  font-style: italic;
+  padding-left: 10px;
+  border-left: 3px solid #d4af37;
+  margin-left: 15px;
+}
+
+.action-marker {
+  color: #d4af37;
+  font-size: 1.1em;
+  margin-right: 5px;
+}
+
+/* Choice container */
+.choice-container {
+  margin-bottom: 20px;
+  padding: 20px;
+  background: rgba(212, 175, 55, 0.08);
+  border-radius: 6px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.choice-header {
+  font-family: 'Georgia', serif;
+  font-size: 1.1em;
+  font-weight: 600;
+  color: #2c1810;
+  margin-bottom: 15px;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.choice-button {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #8b7355 0%, #6d5c47 100%);
+  color: #f9f7f1;
+  border: none;
+  border-radius: 5px;
+  font-family: 'Georgia', serif;
+  font-size: 0.95em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+
+.choice-button::before {
+  content: '→';
+  position: absolute;
+  left: -20px;
+  transition: left 0.3s ease;
+  color: #d4af37;
+}
+
+.choice-button:hover {
+  background: linear-gradient(135deg, #9d8464 0%, #7d6c56 100%);
+  transform: translateX(5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.choice-button:hover::before {
+  left: 10px;
+}
+
+.choice-button:active {
+  transform: translateX(5px) scale(0.98);
+}
+
+/* Custom action input */
+.custom-action {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.action-input {
+  flex: 1;
+  padding: 12px 15px;
+  border: 2px solid #d4d0c8;
+  border-radius: 5px;
+  font-family: 'Georgia', serif;
+  font-size: 0.95em;
+  background: white;
+  color: #2c2c2c;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.action-input:focus {
+  outline: none;
+  border-color: #d4af37;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+}
+
+.action-input::placeholder {
+  color: #999;
+  font-style: italic;
+}
+
+.action-submit {
+  padding: 12px 25px;
+  background: linear-gradient(135deg, #d4af37 0%, #b8941f 100%);
   color: white;
   border: none;
   border-radius: 5px;
-  font-size: 16px; /* Adjust as needed */
+  font-family: 'Georgia', serif;
+  font-size: 0.95em;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s, transform 0.3s;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
 }
 
-button:hover {
-  background-color: #45a049; /* A slightly darker shade for hover */
-  transform: translateY(-2px); /* Slight raise effect */
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Soft shadow for depth */
+.action-submit:hover {
+  background: linear-gradient(135deg, #e6c24a 0%, #c9a431 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-button:active {
-  background-color: #3e8e41; /* Even darker for active (clicked) state */
-  transform: translateY(-1px); /* Less raise */
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+.action-submit:active {
+  transform: translateY(-1px);
+}
+
+/* Page footer */
+.page-footer {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding-top: 20px;
+  border-top: 1px solid #d4d0c8;
+  flex-wrap: wrap;
+}
+
+.footer-button {
+  padding: 8px 15px;
+  background: transparent;
+  color: #5a5a5a;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: 'Georgia', serif;
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.footer-button:hover {
+  background: rgba(139, 115, 85, 0.1);
+  border-color: #8b7355;
+  color: #2c1810;
+}
+
+.footer-button.recording {
+  background: #dc3545;
+  color: white;
+  border-color: #dc3545;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.audio-player {
+  flex: 1;
+  max-width: 300px;
+  height: 32px;
+}
+
+/* Image modal */
+.image-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.modal-image {
+  max-width: 100%;
+  max-height: 90vh;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.modal-close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.5em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+  .book-container {
+    flex-direction: column;
+  }
+
+  .book-spine {
+    display: none;
+  }
+
+  .book-page {
+    max-height: none;
+    padding: 40px 30px;
+  }
+
+  .story-title {
+    font-size: 1.8em;
+  }
+}
+
+@media (max-width: 768px) {
+  .book-wrapper {
+    padding: 10px;
+  }
+
+  .book-page {
+    padding: 30px 20px;
+  }
+
+  .story-title {
+    font-size: 1.5em;
+  }
+
+  .choice-button {
+    font-size: 0.9em;
+    padding: 10px 15px;
+  }
+
+  .custom-action {
+    flex-direction: column;
+  }
+
+  .action-submit {
+    width: 100%;
+  }
+
+  .page-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .footer-button {
+    width: 100%;
+  }
+
+  .audio-player {
+    max-width: 100%;
+  }
+}
+
+/* Print-style page texture overlay */
+.book-page::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.01) 2px,
+      rgba(0, 0, 0, 0.01) 4px
+    );
+  pointer-events: none;
+  opacity: 0.5;
 }
