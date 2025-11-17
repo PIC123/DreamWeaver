@@ -4,7 +4,7 @@ import './Story.css';
 import {OpenAI as OAI} from "openai";
 
 export default function Story() {
-  const systemTemplate = "Act as a terminal for a zork clone text based dungeon adventure game based in {setting}. Respond ONLY with descriptions of the environment and react to basic commands like moving in a direction or picking up items. Begin the story in a randomly generated space and describe what the player sees. Only return json objects as responses. The objects should have the parameters \"story-text\", which is just a string of the generated description, \"possible-actions\", which is a list of possible actions that the user can take, \"location\" which is an x,y pair that denotes the Euclidian distance from the starting location in steps with north and east being the positive directions. Also include the parameter \"dall-e-prompt\" which contains a generated prompt for the generative art ai dall-e to produce an artistic storybook illustration of the current description with lots of details in a hand-drawn style. Keep track of the user's actions in a parameter called \"action-history\" that is a list of the actions that the user has take so far, with the corresponding location that the action happened.";
+  const systemTemplate = "Act as a terminal for a zork clone text based dungeon adventure game based in {setting}. Respond ONLY with descriptions of the environment and react to basic commands like moving in a direction or picking up items. Begin the story in a randomly generated space and describe what the player sees. Only return json objects as responses. The objects should have the parameters \"story-text\", which is just a string of the generated description, \"possible-actions\", which is a list of possible actions that the user can take, \"location\" which is an x,y pair that denotes the Euclidian distance from the starting location in steps with north and east being the positive directions. Also include the parameter \"dall-e-prompt\" which contains a generated prompt for the generative art ai dall-e to produce an artistic storybook illustration of the current description. The dall-e-prompt should always specify: 'Watercolor storybook illustration in a whimsical hand-painted style, warm lighting, soft edges, children's book aesthetic, detailed and charming,' followed by the scene description with rich visual details. Keep track of the user's actions in a parameter called \"action-history\" that is a list of the actions that the user has take so far, with the corresponding location that the action happened.";
   const STORAGE_BASE_URL = 'https://dreamweaverdata.blob.core.windows.net/story-images/';
 
   const PARTITION = "TestStories";
@@ -19,6 +19,7 @@ export default function Story() {
   const [messageHistory, setMessageHistory] = useState([["system", systemTemplate]]);
   const [input, setInput] = useState('');
   const [imgSrc, setImgSrc] = useState('https://raw.githubusercontent.com/PIC123/DreamWeaver/main/src/loading.png');
+  const [backgroundImage, setBackgroundImage] = useState('');
   const [possibleActions, setPossibleActions] = useState(['Action 1', 'Action 2', 'Action 3']);
   const [isImageModalOpen, setImageModalOpen] = useState(false); // State variable for image modal
   const [isRecording, setIsRecording] = useState(false);
@@ -83,6 +84,7 @@ export default function Story() {
     console.log(resp_json);
 
     setImgSrc(resp_json.imgURL);
+    setBackgroundImage(resp_json.imgURL);
     setStoryImages(JSON.parse(resp_json.storyImages));
     const loadedHistory = JSON.parse(resp_json.messageHistory);
     setMessageHistory(loadedHistory);
@@ -139,6 +141,7 @@ export default function Story() {
 
   async function getImage(prompt, storyID) {
     setIsImageLoading(true);
+    // Keep previous image visible while loading
     try {
       // Generate the image with DALL-E
       const response = await oai.images.generate({
@@ -151,6 +154,7 @@ export default function Story() {
 
       // Display the OpenAI image immediately for fast user experience
       setImgSrc(openAIImageUrl);
+      setBackgroundImage(openAIImageUrl); // Update background with new image
       setStoryImages([...storyImages, openAIImageUrl]);
       setIsImageLoading(false);
 
@@ -160,6 +164,7 @@ export default function Story() {
         .then(() => {
           // Update to blob storage URL after successful save
           setImgSrc(blobStorageUrl);
+          setBackgroundImage(blobStorageUrl);
           setStoryImages(prevImages => {
             const updatedImages = [...prevImages];
             updatedImages[imageIndex] = blobStorageUrl;
@@ -411,7 +416,9 @@ useEffect(() => {
 
   return (
     <div className="story-container">
-      <div className="overlay"></div>
+      <div className="overlay" style={{
+        backgroundImage: backgroundImage ? `url(${backgroundImage})` : 'none'
+      }}></div>
 
       {/* Header */}
       <div className="story-header">
@@ -424,12 +431,7 @@ useEffect(() => {
         {/* Left Panel - Image Section */}
         <div className="image-section">
           <div className="image-container">
-            {isImageLoading ? (
-              <div className="image-loading">
-                <div className="spinner"></div>
-                <div className="loading-text">Painting your scene...</div>
-              </div>
-            ) : imgSrc ? (
+            {imgSrc ? (
               <img
                 src={imgSrc}
                 alt="Story Scene"
@@ -439,6 +441,13 @@ useEffect(() => {
             ) : (
               <div className="image-placeholder">
                 <div className="loading-text">Awaiting your first scene...</div>
+              </div>
+            )}
+            {/* Loading indicator overlay - doesn't replace image */}
+            {isImageLoading && (
+              <div className="image-loading-overlay">
+                <div className="spinner"></div>
+                <div className="loading-text">Painting your scene...</div>
               </div>
             )}
           </div>
