@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(vercel --version:*)",
+      "Bash(vercel --prod:*)",
+      "Bash(vercel inspect:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(vercel ls:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

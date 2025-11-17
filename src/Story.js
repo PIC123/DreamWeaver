@@ -29,6 +29,8 @@ export default function Story() {
   const audioRef = useRef(null);
   const [storyId, setStoryId] = useState();
   const [currentPrompt, setCurrentPrompt] = useState();
+  const [isImageLoading, setIsImageLoading] = useState(false);
+  const [isStoryLoading, setIsStoryLoading] = useState(false);
 
   const oai = new OAI({
     apiKey: process.env.REACT_APP_OPENAI_API_KEY,
@@ -39,13 +41,17 @@ export default function Story() {
   const imgsEndRef = useRef(null); // Create a ref
   const scrollToBottom = () => {
     try {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     } catch (error) {
       console.log(error);
     }
   };
   const scrollToEnd = () => {
-    imgsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    try {
+      imgsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   // Helper function to convert message history to OpenAI format
@@ -132,35 +138,42 @@ export default function Story() {
   }
 
   async function getImage(prompt, storyID) {
-    // Generate the image with DALL-E
-    const response = await oai.images.generate({
-          model: "dall-e-3",
-          prompt: prompt });
+    setIsImageLoading(true);
+    try {
+      // Generate the image with DALL-E
+      const response = await oai.images.generate({
+            model: "dall-e-3",
+            prompt: prompt });
 
-    const openAIImageUrl = response.data[0].url;
-    const imageIndex = storyImages.length;
-    const blobStorageUrl = STORAGE_BASE_URL + storyID + "/" + imageIndex + ".png";
+      const openAIImageUrl = response.data[0].url;
+      const imageIndex = storyImages.length;
+      const blobStorageUrl = STORAGE_BASE_URL + storyID + "/" + imageIndex + ".png";
 
-    // Display the OpenAI image immediately for fast user experience
-    setImgSrc(openAIImageUrl);
-    setStoryImages([...storyImages, openAIImageUrl]);
+      // Display the OpenAI image immediately for fast user experience
+      setImgSrc(openAIImageUrl);
+      setStoryImages([...storyImages, openAIImageUrl]);
+      setIsImageLoading(false);
 
-    // Save to blob storage in the background (don't await)
-    // Once saved, update to the permanent blob storage URL
-    saveImage(openAIImageUrl, storyID, imageIndex)
-      .then(() => {
-        // Update to blob storage URL after successful save
-        setImgSrc(blobStorageUrl);
-        setStoryImages(prevImages => {
-          const updatedImages = [...prevImages];
-          updatedImages[imageIndex] = blobStorageUrl;
-          return updatedImages;
+      // Save to blob storage in the background (don't await)
+      // Once saved, update to the permanent blob storage URL
+      saveImage(openAIImageUrl, storyID, imageIndex)
+        .then(() => {
+          // Update to blob storage URL after successful save
+          setImgSrc(blobStorageUrl);
+          setStoryImages(prevImages => {
+            const updatedImages = [...prevImages];
+            updatedImages[imageIndex] = blobStorageUrl;
+            return updatedImages;
+          });
+        })
+        .catch(error => {
+          console.error('Error saving image to blob storage:', error);
+          // Keep using OpenAI URL if blob storage fails
         });
-      })
-      .catch(error => {
-        console.error('Error saving image to blob storage:', error);
-        // Keep using OpenAI URL if blob storage fails
-      });
+    } catch (error) {
+      console.error('Error generating image:', error);
+      setIsImageLoading(false);
+    }
   }
 
   async function saveImage(imgUrl, storyID, imgID) {
@@ -248,31 +261,40 @@ export default function Story() {
   
   // Handler for possible action buttons
   const handleActionClick = async (action) => {
+    setIsStoryLoading(true);
+
     // Convert message history to OpenAI format and add the user action
     const openAIMessages = convertMessagesToOpenAIFormat(messageHistory);
     openAIMessages.push({ role: 'user', content: action + " and respond ONLY with the JSON defined above" });
 
-    await setMessages([...messages, { text: action, sender: 'human' }, { text: "Loading...", sender: 'system' }]);
+    await setMessages([...messages, { text: action, sender: 'human' }, { text: "✨ Weaving your tale...", sender: 'system' }]);
     console.log(openAIMessages);
 
-    // Call OpenAI API directly
-    const result = await oai.chat.completions.create({
-      model: "gpt-4",
-      messages: openAIMessages,
-    });
+    try {
+      // Call OpenAI API directly
+      const result = await oai.chat.completions.create({
+        model: "gpt-4",
+        messages: openAIMessages,
+      });
 
-    const parsed = JSON.parse(result.choices[0].message.content)
-    setInput('');
+      const parsed = JSON.parse(result.choices[0].message.content)
+      setInput('');
 
-    // Update UI immediately
-    setMessages([...messages, { text: action, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]);
-    messageHistory.push(["human", action]);
-    messageHistory.push(["assistant", parsed["story-text"]]);
-    setPossibleActions(parsed["possible-actions"]);
+      // Update UI immediately
+      setMessages([...messages, { text: action, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]);
+      messageHistory.push(["human", action]);
+      messageHistory.push(["assistant", parsed["story-text"]]);
+      setPossibleActions(parsed["possible-actions"]);
+      setIsStoryLoading(false);
 
-    // Load image and save prompt in parallel (non-blocking)
-    savePrompt(parsed["dall-e-prompt"]);
-    getImage(parsed["dall-e-prompt"], storyId);
+      // Load image and save prompt in parallel (non-blocking)
+      savePrompt(parsed["dall-e-prompt"]);
+      getImage(parsed["dall-e-prompt"], storyId);
+    } catch (error) {
+      console.error('Error in handleActionClick:', error);
+      setMessages([...messages, { text: action, sender: 'human' }, { text: 'An error occurred. Please try again.', sender: 'system' }]);
+      setIsStoryLoading(false);
+    }
   };
 
   const handleKeyPress = (event) => {
@@ -286,31 +308,42 @@ export default function Story() {
   };
 
   const handleSubmit = async () => {
-    // Convert message history to OpenAI format and add the user input
-    const openAIMessages = convertMessagesToOpenAIFormat(messageHistory);
-    openAIMessages.push({ role: 'user', content: input + " and respond ONLY with the JSON defined above" });
+    if (!input.trim()) return;
 
-    await setMessages([...messages, { text: input, sender: 'human' }, { text: "Loading...", sender: 'system' }]);
-
-    // Call OpenAI API directly
-    const result = await oai.chat.completions.create({
-      model: "gpt-4",
-      messages: openAIMessages,
-    });
-
-    const parsed = JSON.parse(result.choices[0].message.content)
+    setIsStoryLoading(true);
     const userInput = input; // Store input before clearing
     setInput('');
 
-    // Update UI immediately
-    setMessages([...messages, { text: userInput, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]);
-    messageHistory.push(["human", userInput]);
-    messageHistory.push(["assistant", parsed["story-text"]]);
-    setPossibleActions(parsed["possible-actions"]);
+    // Convert message history to OpenAI format and add the user input
+    const openAIMessages = convertMessagesToOpenAIFormat(messageHistory);
+    openAIMessages.push({ role: 'user', content: userInput + " and respond ONLY with the JSON defined above" });
 
-    // Load image and save prompt in parallel (non-blocking)
-    savePrompt(parsed["dall-e-prompt"]);
-    getImage(parsed["dall-e-prompt"], storyId);
+    await setMessages([...messages, { text: userInput, sender: 'human' }, { text: "✨ Weaving your tale...", sender: 'system' }]);
+
+    try {
+      // Call OpenAI API directly
+      const result = await oai.chat.completions.create({
+        model: "gpt-4",
+        messages: openAIMessages,
+      });
+
+      const parsed = JSON.parse(result.choices[0].message.content)
+
+      // Update UI immediately
+      setMessages([...messages, { text: userInput, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]);
+      messageHistory.push(["human", userInput]);
+      messageHistory.push(["assistant", parsed["story-text"]]);
+      setPossibleActions(parsed["possible-actions"]);
+      setIsStoryLoading(false);
+
+      // Load image and save prompt in parallel (non-blocking)
+      savePrompt(parsed["dall-e-prompt"]);
+      getImage(parsed["dall-e-prompt"], storyId);
+    } catch (error) {
+      console.error('Error in handleSubmit:', error);
+      setMessages([...messages, { text: userInput, sender: 'human' }, { text: 'An error occurred. Please try again.', sender: 'system' }]);
+      setIsStoryLoading(false);
+    }
   };
 
   const handleBack = () => {
@@ -378,52 +411,125 @@ useEffect(() => {
 
   return (
     <div className="story-container">
-      <div className="overlay" style={{
-        backgroundImage: `url(${imgSrc})`
-      }}></div>
-      <h2 className="story-intro">Welcome to your new story set in {setting}. Let the adventure begin!</h2>
-      <h4 className="story-id" style={{backgroundColor:'white'}}>Story ID: {storyId}</h4>
-      {/* <img src={imgSrc} alt="Story" className="story-image" /> */}
-      <img src={imgSrc} alt="Story" className="story-image" onClick={() => {toggleImageModal(imgSrc)}} />
+      <div className="overlay"></div>
+
+      {/* Header */}
+      <div className="story-header">
+        <h2 className="story-intro">Welcome to {setting}</h2>
+        <h4 className="story-id">ID: {storyId}</h4>
+      </div>
+
+      {/* Main Content Area - Split Layout */}
+      <div className="main-content">
+        {/* Left Panel - Image Section */}
+        <div className="image-section">
+          <div className="image-container">
+            {isImageLoading ? (
+              <div className="image-loading">
+                <div className="spinner"></div>
+                <div className="loading-text">Painting your scene...</div>
+              </div>
+            ) : imgSrc ? (
+              <img
+                src={imgSrc}
+                alt="Story Scene"
+                className="story-image"
+                onClick={() => toggleImageModal(imgSrc)}
+              />
+            ) : (
+              <div className="image-placeholder">
+                <div className="loading-text">Awaiting your first scene...</div>
+              </div>
+            )}
+          </div>
+
+          {/* Image Gallery */}
+          {storyImages.length > 0 && (
+            <div className="image-gallery">
+              {storyImages.map((image, index) => (
+                <img
+                  key={index}
+                  src={image}
+                  alt={`Scene ${index + 1}`}
+                  onClick={() => toggleImageModal(image)}
+                  className="gallery-story-image"
+                />
+              ))}
+              <div ref={imgsEndRef}></div>
+            </div>
+          )}
+        </div>
+
+        {/* Right Panel - Chat Section */}
+        <div className="chat-section">
+          {/* Message Container */}
+          <div className="message-container">
+            {messages.map((message, index) => (
+              <div key={index} className={message.sender === 'human' ? 'user-message' : 'system-message'}>
+                {message.text}
+              </div>
+            ))}
+            <div ref={messagesEndRef}></div>
+          </div>
+
+          {/* Actions */}
+          <div className="actions-container">
+            {possibleActions.map((action, index) => (
+              <button
+                key={index}
+                onClick={() => handleActionClick(action)}
+                disabled={isStoryLoading}
+              >
+                {action}
+              </button>
+            ))}
+          </div>
+
+          {/* Input Controls */}
+          <div className="input-controls">
+            <input
+              type="text"
+              value={input}
+              onChange={handleInput}
+              onKeyPress={handleKeyPress}
+              className="message-input"
+              placeholder="Describe your action..."
+              disabled={isStoryLoading}
+            />
+            <button
+              onClick={handleSubmit}
+              className="submit-button"
+              disabled={isStoryLoading}
+            >
+              {isStoryLoading ? '✨' : 'Send'}
+            </button>
+          </div>
+
+          {/* Bottom Controls */}
+          <div className="bottom-controls">
+            <button onClick={handleBack} className="back-button">← Back to Menu</button>
+            {isRecording ? (
+              <button style={{backgroundColor:'#e74c3c'}} onClick={stopRecording}>⏹ Stop Recording</button>
+            ) : (
+              <button style={{backgroundColor:'#2ecc71'}} onClick={startRecording}>🎤 Start Recording</button>
+            )}
+          </div>
+
+          {/* Audio Player */}
+          {audioUrl && (
+            <audio ref={audioRef} controls src={audioUrl}>
+              Your browser does not support the audio element.
+            </audio>
+          )}
+        </div>
+      </div>
+
+      {/* Image Modal */}
       {isImageModalOpen && (
-        <div className="image-modal" onClick={() => {toggleImageModal('')}}>
-          <img src={selectedImg} alt="Enlarged Story" className="enlarged-image" />
+        <div className="image-modal" onClick={() => toggleImageModal('')}>
+          <img src={selectedImg} alt="Enlarged Scene" className="enlarged-image" />
         </div>
       )}
-      <div className="image-gallery">
-          {storyImages.map((image, index) => (
-              <img key={index} src={image} alt={`Story part ${index + 1}`} onClick={() => {toggleImageModal(image)}} className="gallery-story-image" />
-          ))}
-          <div ref={imgsEndRef}></div>
-      </div>
-      {audioUrl && (
-            <audio ref={audioRef} controls src={audioUrl}>
-                Your browser does not support the audio element.
-            </audio>
-        )}
-      <div className="message-container">
-        {messages.map((message, index) => (
-          <div key={index} className={message.sender === 'human' ? 'user-message' : 'system-message'}>
-            {message.text}
-          </div>
-        ))}
-        <div ref={messagesEndRef}></div>
-      </div>
-      <div className="actions-container">
-        {possibleActions.map((action, index) => (
-          <button key={index} onClick={() => handleActionClick(action)}>{action}</button>
-        ))}
-      </div>
-      <input type="text" value={input} onChange={handleInput} onKeyPress={handleKeyPress} className="message-input" />
-      <button onClick={handleSubmit} className="submit-button">Submit</button>
-      <button onClick={handleBack} className="back-button">Back</button>
-      <div className="recording-controls">
-          {isRecording ? (
-              <button style={{backgroundColor:'red'}} onClick={stopRecording}>Stop Recording</button>
-          ) : (
-              <button style={{backgroundColor:'green'}} onClick={startRecording}>Start Recording</button>
-          )}
-      </div>
     </div>
   );
 }
