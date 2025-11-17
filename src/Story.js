@@ -1,12 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './Story.css';
-import { ChatOpenAI } from "langchain/chat_models/openai"; 
-import { ChatPromptTemplate } from "langchain/prompts";
 import {OpenAI as OAI} from "openai";
 
 export default function Story() {
-  // const systemTemplate = "Act as a terminal for a zork clone text based alien date adventure game based in {setting}. Respond ONLY with descriptions of the environment and react to basic commands like moving in a direction or picking up items. Begin the story in a randomly generated space and describe what the player sees. Only return json objects as responses. The objects should have the parameters \"story-text\", which is just a string of the generated description, \"possible-actions\", which is a list of possible actions that the user can take, \"location\" which is an x,y pair that denotes the Euclidian distance from the starting location in steps with north and east being the positive directions. Also include the parameter \"dall-e-prompt\" which contains a generated prompt for the generative art ai dall-e to produce an artistic storybook illustration of the current description with lots of details in a hand-drawn style. Keep track of the user's actions in a parameter called \"action-history\" that is a list of the actions that the user has take so far, with the corresponding location that the action happened. Create an end to the story for the user after a random amount of messages, between 5-15 user messages.";
   const systemTemplate = "Act as a terminal for a zork clone text based dungeon adventure game based in {setting}. Respond ONLY with descriptions of the environment and react to basic commands like moving in a direction or picking up items. Begin the story in a randomly generated space and describe what the player sees. Only return json objects as responses. The objects should have the parameters \"story-text\", which is just a string of the generated description, \"possible-actions\", which is a list of possible actions that the user can take, \"location\" which is an x,y pair that denotes the Euclidian distance from the starting location in steps with north and east being the positive directions. Also include the parameter \"dall-e-prompt\" which contains a generated prompt for the generative art ai dall-e to produce an artistic storybook illustration of the current description with lots of details in a hand-drawn style. Keep track of the user's actions in a parameter called \"action-history\" that is a list of the actions that the user has take so far, with the corresponding location that the action happened.";
   const STORAGE_BASE_URL = 'https://dreamweaverdata.blob.core.windows.net/story-images/';
 
@@ -33,18 +30,9 @@ export default function Story() {
   const [storyId, setStoryId] = useState();
   const [currentPrompt, setCurrentPrompt] = useState();
 
-  // const generateStoryId = () => {
-  //   return Math.random().toString(36).substr(2, 9);
-  // };
   const oai = new OAI({
     apiKey: process.env.REACT_APP_OPENAI_API_KEY,
     dangerouslyAllowBrowser: true,
-  });
-
-  const model = new ChatOpenAI({
-    openAIApiKey: process.env.REACT_APP_OPENAI_API_KEY,
-    // modelName: "gpt-3.5-turbo",
-    modelName: "gpt-4",
   });
 
   const messagesEndRef = useRef(null); // Create a ref
@@ -60,7 +48,13 @@ export default function Story() {
     imgsEndRef.current.scrollIntoView({ behavior: 'smooth' });
   };
 
-  var chatPrompt= ChatPromptTemplate.fromMessages([["system", systemTemplate]]);
+  // Helper function to convert message history to OpenAI format
+  const convertMessagesToOpenAIFormat = (messageHistory) => {
+    return messageHistory.map(([role, content]) => {
+      const openAIRole = role === 'system' ? 'system' : role === 'human' ? 'user' : 'assistant';
+      return { role: openAIRole, content: content };
+    });
+  };
 
   async function loadStory() {
     setStoryId(storyIdLoaded);
@@ -82,16 +76,12 @@ export default function Story() {
     console.log("Loaded Story:");
     console.log(resp_json);
 
-    // const loadedJson = JSON.parse(resp_json);
-    // console.log(loadedJson);
-    
     setImgSrc(resp_json.imgURL);
     setStoryImages(JSON.parse(resp_json.storyImages));
     const loadedHistory = JSON.parse(resp_json.messageHistory);
     setMessageHistory(loadedHistory);
     setMessages(JSON.parse(resp_json.messages));
     setPossibleActions(JSON.parse(resp_json.possibleActions));
-    chatPrompt = ChatPromptTemplate.fromMessages([...loadedHistory,]);
     console.log(storyImages);
     console.log(messageHistory);
     console.log(messages);
@@ -142,20 +132,42 @@ export default function Story() {
   }
 
   async function getImage(prompt, storyID) {
-    // TODO: Add change storyID var to be less confusing
-    const response = await oai.images.generate({ 
+    // Generate the image with DALL-E
+    const response = await oai.images.generate({
           model: "dall-e-3",
           prompt: prompt });
-    await saveImage(response.data[0].url, storyID);
-    setImgSrc(STORAGE_BASE_URL + storyID + "/" + storyImages.length + ".png");
-    setStoryImages([...storyImages, STORAGE_BASE_URL + storyID + "/" + storyImages.length + ".png"]);
+
+    const openAIImageUrl = response.data[0].url;
+    const imageIndex = storyImages.length;
+    const blobStorageUrl = STORAGE_BASE_URL + storyID + "/" + imageIndex + ".png";
+
+    // Display the OpenAI image immediately for fast user experience
+    setImgSrc(openAIImageUrl);
+    setStoryImages([...storyImages, openAIImageUrl]);
+
+    // Save to blob storage in the background (don't await)
+    // Once saved, update to the permanent blob storage URL
+    saveImage(openAIImageUrl, storyID, imageIndex)
+      .then(() => {
+        // Update to blob storage URL after successful save
+        setImgSrc(blobStorageUrl);
+        setStoryImages(prevImages => {
+          const updatedImages = [...prevImages];
+          updatedImages[imageIndex] = blobStorageUrl;
+          return updatedImages;
+        });
+      })
+      .catch(error => {
+        console.error('Error saving image to blob storage:', error);
+        // Keep using OpenAI URL if blob storage fails
+      });
   }
 
-  async function saveImage(imgUrl, storyID) {
+  async function saveImage(imgUrl, storyID, imgID) {
     const data = {
       "imgURL": imgUrl,
       "storyID": storyID,
-      "imgID": storyImages.length
+      "imgID": imgID
     }
     const resp = await fetch('https://dreamweaver-api.azurewebsites.net/api/SaveImgToBlob', {
       method: 'POST', // or 'PUT'
@@ -170,34 +182,40 @@ export default function Story() {
     return resp
   }
 
-  //await setMessages([{ text: parsed["story-text"], sender: 'system' }]);
-  // await setMessageHistory([...messageHistory, ["ai",parsed["story-text"]]]);
-
   useEffect(() => {
     async function fetchData() {
         const new_story_id = Math.random().toString(36).substr(2, 9);
         setStoryId(new_story_id);
         console.log("Generating new story with id:" + new_story_id);
-        const formatMessages = await chatPrompt.formatMessages({setting: setting});
-        const result = await model.predictMessages(formatMessages);
-        const parsed = JSON.parse(result.content)
-        savePrompt(parsed["dall-e-prompt"])
-          .then(setMessages([{ text: parsed["story-text"], sender: 'system' }]))
-          .then(setMessageHistory([...messageHistory, ["ai",parsed["story-text"]]]))
-          .then(getImage(parsed["dall-e-prompt"], new_story_id))
-          .then(setPossibleActions(parsed["possible-actions"]))
-          // .then(saveStory(new_story_id))
-          .then(scrollToBottom());
+
+        // Create the initial system message with setting
+        const systemMessage = systemTemplate.replace('{setting}', setting);
+        const messages = [{ role: 'system', content: systemMessage }];
+
+        // Call OpenAI API directly
+        const result = await oai.chat.completions.create({
+          model: "gpt-4",
+          messages: messages,
+        });
+
+        const parsed = JSON.parse(result.choices[0].message.content)
+
+        // Update UI immediately
+        setMessages([{ text: parsed["story-text"], sender: 'system' }]);
+        setMessageHistory([["system", systemMessage], ["assistant", parsed["story-text"]]]);
+        setPossibleActions(parsed["possible-actions"]);
+        scrollToBottom();
+
+        // Load image and save prompt in parallel (non-blocking)
+        savePrompt(parsed["dall-e-prompt"]);
+        getImage(parsed["dall-e-prompt"], new_story_id);
     }
     console.log("storyIdLoaded: " + storyIdLoaded);
     console.log(storyIdLoaded === '');
-    // fetchData();
     if (storyIdLoaded !== '') {
       console.log("Loading story with id:" + storyIdLoaded);
       loadStory();
     } else {
-      // setStoryId(Math.random().toString(36).substr(2, 9));
-      // console.log("Generating new story with id:" + storyId);
       fetchData();
     }
     if ('webkitSpeechRecognition' in window) {
@@ -228,43 +246,33 @@ export default function Story() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storyImages]);
   
-  const humanTemplate = "{action} and respond ONLY with the JSON defined above";
-
   // Handler for possible action buttons
   const handleActionClick = async (action) => {
-    const chatPrompt = ChatPromptTemplate.fromMessages([...messageHistory,
-            ["human", humanTemplate],
-          ]);
-    const formattedChatPrompt = await chatPrompt.formatMessages({
-        setting: setting,
-        action: action,
-        });
+    // Convert message history to OpenAI format and add the user action
+    const openAIMessages = convertMessagesToOpenAIFormat(messageHistory);
+    openAIMessages.push({ role: 'user', content: action + " and respond ONLY with the JSON defined above" });
+
     await setMessages([...messages, { text: action, sender: 'human' }, { text: "Loading...", sender: 'system' }]);
-    console.log(formattedChatPrompt);
-    const result = await model.predictMessages(formattedChatPrompt);
-    const parsed = JSON.parse(result.content)
+    console.log(openAIMessages);
+
+    // Call OpenAI API directly
+    const result = await oai.chat.completions.create({
+      model: "gpt-4",
+      messages: openAIMessages,
+    });
+
+    const parsed = JSON.parse(result.choices[0].message.content)
     setInput('');
-    savePrompt(parsed["dall-e-prompt"])
-    .then(setMessages([...messages, { text: action, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]))
-    .then(() =>{
-      messageHistory.push(["human", action]);
-      messageHistory.push(["ai",parsed["story-text"]]);
-    }).then(getImage(parsed["dall-e-prompt"], storyId))
-    .then(setPossibleActions(parsed["possible-actions"]));
-    // .then(saveStory(storyId));
-    // await handleSpeech(parsed["story-text"]);
-    // ------------------------------
-    // await savePrompt(parsed["dall-e-prompt"]);
-    // await setMessages([...messages, { text: action, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]);
-    // messageHistory.push(["human", action]);
-    // messageHistory.push(["ai",parsed["story-text"]])
-    // // await handleSpeech(parsed["story-text"]);
-    // await getImage(parsed["dall-e-prompt"], storyId);
-    // await setPossibleActions(parsed["possible-actions"]);
-    // await saveStory(storyId);
-    // You can add functionality here to handle action button clicks
-    // const resp = await saveStory();
-    // console.log(resp);
+
+    // Update UI immediately
+    setMessages([...messages, { text: action, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]);
+    messageHistory.push(["human", action]);
+    messageHistory.push(["assistant", parsed["story-text"]]);
+    setPossibleActions(parsed["possible-actions"]);
+
+    // Load image and save prompt in parallel (non-blocking)
+    savePrompt(parsed["dall-e-prompt"]);
+    getImage(parsed["dall-e-prompt"], storyId);
   };
 
   const handleKeyPress = (event) => {
@@ -278,28 +286,31 @@ export default function Story() {
   };
 
   const handleSubmit = async () => {
-    const chatPrompt = ChatPromptTemplate.fromMessages([...messageHistory,
-            ["human", humanTemplate],
-          ]);
-    const formattedChatPrompt = await chatPrompt.formatMessages({
-        setting: setting,
-        action: input + "and respond ONLY with the JSON defined above",
-        });
+    // Convert message history to OpenAI format and add the user input
+    const openAIMessages = convertMessagesToOpenAIFormat(messageHistory);
+    openAIMessages.push({ role: 'user', content: input + " and respond ONLY with the JSON defined above" });
+
     await setMessages([...messages, { text: input, sender: 'human' }, { text: "Loading...", sender: 'system' }]);
-    const result = await model.predictMessages(formattedChatPrompt);
-    const parsed = JSON.parse(result.content)
+
+    // Call OpenAI API directly
+    const result = await oai.chat.completions.create({
+      model: "gpt-4",
+      messages: openAIMessages,
+    });
+
+    const parsed = JSON.parse(result.choices[0].message.content)
+    const userInput = input; // Store input before clearing
     setInput('');
-    savePrompt(parsed["dall-e-prompt"])
-      .then(setMessages([...messages, { text: input, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]))
-      .then(() =>{
-        messageHistory.push(["human", input]);
-        messageHistory.push(["ai",parsed["story-text"]]);
-      }).then(getImage(parsed["dall-e-prompt"], storyId))
-      .then(setPossibleActions(parsed["possible-actions"]));
-      // .then(saveStory(storyId));
-    // const resp = await saveStory();
-    // console.log(resp);
-    // Here, you may want to implement a logic to add a system response
+
+    // Update UI immediately
+    setMessages([...messages, { text: userInput, sender: 'human' }, { text: parsed["story-text"], sender: 'system' }]);
+    messageHistory.push(["human", userInput]);
+    messageHistory.push(["assistant", parsed["story-text"]]);
+    setPossibleActions(parsed["possible-actions"]);
+
+    // Load image and save prompt in parallel (non-blocking)
+    savePrompt(parsed["dall-e-prompt"]);
+    getImage(parsed["dall-e-prompt"], storyId);
   };
 
   const handleBack = () => {
