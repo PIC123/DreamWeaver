@@ -4,7 +4,7 @@ import './Story.css';
 import {OpenAI as OAI} from "openai";
 
 export default function Story() {
-  const systemTemplate = "Act as a terminal for a zork clone text based dungeon adventure game based in {setting}. Respond ONLY with descriptions of the environment and react to basic commands like moving in a direction or picking up items. Begin the story in a randomly generated space and describe what the player sees. Only return json objects as responses. The objects should have the parameters \"story-text\", which is just a string of the generated description, \"possible-actions\", which is a list of possible actions that the user can take, \"location\" which is an x,y pair that denotes the Euclidian distance from the starting location in steps with north and east being the positive directions. Also include the parameter \"dall-e-prompt\" which contains a generated prompt for the generative art ai dall-e to produce an artistic storybook illustration of the current description. The dall-e-prompt should always specify: 'Watercolor storybook illustration in a whimsical hand-painted style, warm lighting, soft edges, children's book aesthetic, detailed and charming,' followed by the scene description with rich visual details. Keep track of the user's actions in a parameter called \"action-history\" that is a list of the actions that the user has take so far, with the corresponding location that the action happened.";
+  const systemTemplate = "Act as a terminal for a zork clone text based dungeon adventure game based in {setting}. Respond ONLY with descriptions of the environment and react to basic commands like moving in a direction or picking up items. Begin the story in a randomly generated space and describe what the player sees. Only return json objects as responses. The objects should have the parameters \"story-text\", which is just a string of the generated description, \"possible-actions\", which is a list of possible actions that the user can take (use natural language with proper spacing, NOT underscores or snake_case), \"location\" which is an x,y pair that denotes the Euclidian distance from the starting location in steps with north and east being the positive directions. Also include the parameter \"dall-e-prompt\" which contains a generated prompt for the generative art ai dall-e to produce an artistic storybook illustration of the current description. The dall-e-prompt should always specify: 'Watercolor storybook illustration in a whimsical hand-painted style, warm lighting, soft edges, children's book aesthetic, detailed and charming,' followed by the scene description with rich visual details. Keep track of the user's actions in a parameter called \"action-history\" that is a list of the actions that the user has take so far, with the corresponding location that the action happened.";
   const STORAGE_BASE_URL = 'https://dreamweaverdata.blob.core.windows.net/story-images/';
 
   const PARTITION = "TestStories";
@@ -61,6 +61,17 @@ export default function Story() {
       const openAIRole = role === 'system' ? 'system' : role === 'human' ? 'user' : 'assistant';
       return { role: openAIRole, content: content };
     });
+  };
+
+  // Helper function to format action text (remove underscores, capitalize properly)
+  const formatActionText = (text) => {
+    return text
+      .replace(/_/g, ' ')           // Replace underscores with spaces
+      .replace(/\s+/g, ' ')         // Replace multiple spaces with single space
+      .trim()                        // Remove leading/trailing whitespace
+      .split(' ')                    // Split into words
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize each word
+      .join(' ');                    // Join back together
   };
 
   async function loadStory() {
@@ -489,7 +500,7 @@ useEffect(() => {
                 onClick={() => handleActionClick(action)}
                 disabled={isStoryLoading}
               >
-                {action}
+                {formatActionText(action)}
               </button>
             ))}
           </div>
