@@ -8,6 +8,8 @@
   overflow: hidden;
   background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
   font-family: 'Georgia', 'Times New Roman', serif;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* Animated Stars */
@@ -246,6 +248,8 @@
   position: relative;
   overflow: hidden;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .magical-button::before {
@@ -315,23 +319,150 @@
 }
 
 /* Responsive Design */
+
+/* Tablet portrait */
 @media (max-width: 768px) {
   .magical-title {
-    font-size: 2.5rem;
+    font-size: 2.8rem;
   }
 
   .subtitle {
-    font-size: 1rem;
+    font-size: 1.1rem;
+    margin-bottom: 2.5rem;
   }
 
   .input-container {
     min-width: auto;
     width: 90%;
+    max-width: 500px;
     padding: 2rem 1.5rem;
+  }
+
+  .magical-input {
+    font-size: 1rem; /* Prevent zoom on iOS */
+    padding: 0.85rem 1.1rem;
+  }
+
+  .magical-button {
+    min-height: 44px; /* Touch-friendly minimum */
   }
 
   .nebula {
     filter: blur(60px);
+  }
+}
+
+/* Mobile phones */
+@media (max-width: 480px) {
+  .landing-container {
+    padding: 1rem;
+  }
+
+  .magical-title {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .title-word {
+    margin: 0 0.1em;
+  }
+
+  .subtitle {
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+  }
+
+  .input-container {
+    width: 95%;
+    padding: 1.5rem 1.25rem;
+    min-width: auto;
+  }
+
+  .input-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .input-group label {
+    font-size: 0.85rem;
+  }
+
+  .magical-input {
+    font-size: 1rem; /* Prevent zoom on iOS */
+    padding: 0.8rem 1rem;
+  }
+
+  .divider {
+    margin: 1.5rem 0;
+  }
+
+  .divider span {
+    font-size: 0.8rem;
+  }
+
+  .magical-button {
+    margin-top: 1.25rem;
+    padding: 0.9rem 1.5rem;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+
+  .button-text {
+    font-size: 0.95rem;
+  }
+
+  .button-icon {
+    font-size: 1.1rem;
+  }
+
+  .floating-book {
+    bottom: 1rem;
+    right: 1rem;
+    width: 45px;
+    height: 45px;
+  }
+
+  .nebula-1 {
+    width: 400px;
+    height: 400px;
+    top: -150px;
+    left: -150px;
+  }
+
+  .nebula-2 {
+    width: 350px;
+    height: 350px;
+    bottom: -100px;
+    right: -100px;
+  }
+}
+
+/* Small phones / landscape orientation */
+@media (max-width: 360px) {
+  .magical-title {
+    font-size: 1.75rem;
+  }
+
+  .subtitle {
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .input-container {
+    padding: 1.25rem 1rem;
+  }
+
+  .input-group label {
+    font-size: 0.8rem;
+  }
+
+  .magical-input {
+    padding: 0.75rem 0.9rem;
+    font-size: 0.95rem;
+  }
+
+  .magical-button {
+    padding: 0.85rem 1.25rem;
+    font-size: 0.95rem;
   }
 }
   

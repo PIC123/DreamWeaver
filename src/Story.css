@@ -9,6 +9,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* Background Overlay */
@@ -151,6 +153,10 @@
   box-shadow: 0 8px 30px rgba(138, 43, 226, 0.5),
               0 0 60px rgba(183, 148, 246, 0.3);
   transition: all 0.4s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .story-image:hover {
@@ -469,6 +475,8 @@ button {
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
   font-family: 'Georgia', 'Times New Roman', serif;
   font-weight: 600;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button:hover {
@@ -540,6 +548,8 @@ audio {
 }
 
 /* Responsive Design */
+
+/* Tablet landscape and smaller desktops */
 @media (max-width: 1200px) {
   .main-content {
     grid-template-columns: 1fr;
@@ -547,14 +557,15 @@ audio {
   }
 
   .image-section {
-    max-height: 40vh;
+    max-height: 45vh;
   }
 
   .chat-section {
-    min-height: 40vh;
+    min-height: 45vh;
   }
 }
 
+/* Tablet portrait */
 @media (max-width: 768px) {
   .story-container {
     padding: 0.5rem;
@@ -567,7 +578,7 @@ audio {
   }
 
   .story-intro {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
   }
 
   .story-id {
@@ -578,31 +589,35 @@ audio {
     gap: 0.75rem;
   }
 
+  .image-section {
+    max-height: 35vh;
+  }
+
   .user-message,
   .system-message {
     max-width: 95%;
-    padding: 0.6rem 0.9rem;
-    font-size: 0.9rem;
+    padding: 0.7rem 1rem;
+    font-size: 0.95rem;
   }
 
   .actions-container {
-    flex-direction: column;
+    gap: 0.5rem;
   }
 
   .actions-container button {
-    width: 100%;
+    padding: 0.7rem 1rem;
+    font-size: 0.9rem;
+    min-height: 44px; /* Touch-friendly minimum */
   }
 
-  .input-controls {
-    flex-direction: column;
-  }
-
-  .bottom-controls {
-    flex-direction: column;
+  .message-input {
+    font-size: 1rem; /* Prevent zoom on iOS */
+    padding: 0.75rem 1rem;
+    min-height: 44px;
   }
 
   button {
-    width: 100%;
+    min-height: 44px; /* Touch-friendly minimum */
   }
 
   .gallery-story-image {
@@ -613,6 +628,116 @@ audio {
 
   .image-gallery {
     max-height: 100px;
+  }
+
+  .image-loading-overlay {
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* Mobile phones */
+@media (max-width: 480px) {
+  .story-container {
+    padding: 0.25rem;
+  }
+
+  .story-header {
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .story-intro {
+    font-size: 0.85rem;
+  }
+
+  .story-id {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.6rem;
+  }
+
+  .main-content {
+    gap: 0.5rem;
+  }
+
+  .image-section {
+    max-height: 30vh;
+  }
+
+  .image-container {
+    padding: 0.5rem;
+  }
+
+  .message-container {
+    padding: 0.75rem;
+  }
+
+  .user-message,
+  .system-message {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.9rem;
+    max-width: 100%;
+  }
+
+  .actions-container {
+    padding: 0.5rem;
+    gap: 0.4rem;
+  }
+
+  .actions-container button {
+    padding: 0.65rem 0.9rem;
+    font-size: 0.85rem;
+  }
+
+  .input-controls {
+    gap: 0.4rem;
+  }
+
+  .message-input {
+    padding: 0.65rem 0.9rem;
+    font-size: 1rem;
+  }
+
+  .submit-button {
+    padding: 0.65rem 1.2rem;
+  }
+
+  .bottom-controls {
+    gap: 0.4rem;
+  }
+
+  .bottom-controls button {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .gallery-story-image {
+    min-width: 80px;
+    max-width: 80px;
+    height: 60px;
+  }
+
+  .image-gallery {
+    max-height: 80px;
+    padding: 0.5rem;
+  }
+
+  .image-loading-overlay {
+    top: 0.25rem;
+    right: 0.25rem;
+    padding: 0.4rem 0.8rem;
+    gap: 0.5rem;
+  }
+
+  .image-loading-overlay .loading-text {
+    font-size: 0.7rem;
+  }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
   }
 }
 
