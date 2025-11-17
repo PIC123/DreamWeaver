@@ -441,17 +441,7 @@ useEffect(() => {
       {/* Main Content Area - Split Layout */}
       <div className="main-content">
         {/* Left Panel - Image Section */}
-        <div className={`image-section ${isImageSectionCollapsed ? 'collapsed' : ''}`}>
-          <div className="image-section-header">
-            <span className="image-section-title">Scene</span>
-            <button
-              className="toggle-image-button"
-              onClick={() => setIsImageSectionCollapsed(!isImageSectionCollapsed)}
-              aria-label={isImageSectionCollapsed ? "Show images" : "Hide images"}
-            >
-              {isImageSectionCollapsed ? '▶' : '◀'}
-            </button>
-          </div>
+        <div className="image-section">
           <div className="image-container">
             {imgSrc ? (
               <img
@@ -476,18 +466,30 @@ useEffect(() => {
 
           {/* Image Gallery */}
           {storyImages.length > 0 && (
-            <div className="image-gallery">
-              {storyImages.map((image, index) => (
-                <img
-                  key={index}
-                  src={image}
-                  alt={`Scene ${index + 1}`}
-                  onClick={() => toggleImageModal(image)}
-                  className="gallery-story-image"
-                />
-              ))}
-              <div ref={imgsEndRef}></div>
-            </div>
+            <>
+              <div className="image-section-header">
+                <h3>Story Gallery</h3>
+                <button
+                  className="collapse-toggle"
+                  onClick={() => setIsImageSectionCollapsed(!isImageSectionCollapsed)}
+                  aria-label={isImageSectionCollapsed ? "Expand gallery" : "Collapse gallery"}
+                >
+                  {isImageSectionCollapsed ? '▼' : '▲'}
+                </button>
+              </div>
+              <div className={`image-gallery ${isImageSectionCollapsed ? 'collapsed' : ''}`}>
+                {storyImages.map((image, index) => (
+                  <img
+                    key={index}
+                    src={image}
+                    alt={`Scene ${index + 1}`}
+                    onClick={() => toggleImageModal(image)}
+                    className="gallery-story-image"
+                  />
+                ))}
+                <div ref={imgsEndRef}></div>
+              </div>
+            </>
           )}
         </div>
 

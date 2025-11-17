@@ -130,16 +130,6 @@
   transition: all 0.3s ease;
 }
 
-.image-section.collapsed {
-  flex: 0 0 auto;
-  min-width: 50px;
-  max-width: 50px;
-}
-
-.image-section.collapsed .image-container,
-.image-section.collapsed .image-gallery {
-  display: none;
-}
 
 /* Image Section Header */
 .image-section-header {
@@ -153,18 +143,15 @@
   flex-shrink: 0;
 }
 
-.image-section-title {
+.image-section-header h3 {
   color: #e0b3ff;
   font-size: 0.9rem;
   font-weight: 600;
   letter-spacing: 0.05em;
+  margin: 0;
 }
 
-.image-section.collapsed .image-section-title {
-  display: none;
-}
-
-.toggle-image-button {
+.collapse-toggle {
   padding: 0.4rem 0.6rem;
   min-height: auto;
   font-size: 0.9rem;
@@ -175,14 +162,10 @@
   transition: all 0.3s ease;
 }
 
-.toggle-image-button:hover {
+.collapse-toggle:hover {
   background: linear-gradient(135deg, #667eea, #764ba2);
   transform: translateY(0);
   box-shadow: 0 2px 10px rgba(102, 126, 234, 0.5);
-}
-
-.image-section.collapsed .toggle-image-button {
-  width: 100%;
 }
 
 .image-container {
@@ -301,6 +284,11 @@
   scrollbar-color: #667eea rgba(30, 25, 60, 0.3);
   flex-shrink: 0;
   max-height: 120px;
+  transition: all 0.3s ease;
+}
+
+.image-gallery.collapsed {
+  display: none;
 }
 
 .image-gallery::-webkit-scrollbar {
@@ -649,19 +637,15 @@ audio {
     max-height: 35vh;
   }
 
-  .image-section.collapsed {
-    max-height: auto;
-  }
-
   .image-section-header {
     padding: 0.4rem 0.6rem;
   }
 
-  .image-section-title {
+  .image-section-header h3 {
     font-size: 0.85rem;
   }
 
-  .toggle-image-button {
+  .collapse-toggle {
     padding: 0.35rem 0.55rem;
     font-size: 0.85rem;
   }
@@ -738,21 +722,15 @@ audio {
     max-height: 30vh;
   }
 
-  .image-section.collapsed {
-    max-height: auto;
-    min-width: 45px;
-    max-width: 45px;
-  }
-
   .image-section-header {
     padding: 0.35rem 0.5rem;
   }
 
-  .image-section-title {
+  .image-section-header h3 {
     font-size: 0.75rem;
   }
 
-  .toggle-image-button {
+  .collapse-toggle {
     padding: 0.3rem 0.45rem;
     font-size: 0.75rem;
   }
@@ -917,11 +895,11 @@ audio {
     padding: 0.4rem 0.6rem;
   }
 
-  .image-section-title {
+  .image-section-header h3 {
     font-size: 0.8rem;
   }
 
-  .toggle-image-button {
+  .collapse-toggle {
     padding: 0.3rem 0.5rem;
     font-size: 0.8rem;
   }
