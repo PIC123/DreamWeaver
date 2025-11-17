@@ -32,6 +32,7 @@ export default function Story() {
   const [currentPrompt, setCurrentPrompt] = useState();
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [isStoryLoading, setIsStoryLoading] = useState(false);
+  const [isImageSectionCollapsed, setIsImageSectionCollapsed] = useState(false);
 
   const oai = new OAI({
     apiKey: process.env.REACT_APP_OPENAI_API_KEY,
@@ -440,7 +441,17 @@ useEffect(() => {
       {/* Main Content Area - Split Layout */}
       <div className="main-content">
         {/* Left Panel - Image Section */}
-        <div className="image-section">
+        <div className={`image-section ${isImageSectionCollapsed ? 'collapsed' : ''}`}>
+          <div className="image-section-header">
+            <span className="image-section-title">Scene</span>
+            <button
+              className="toggle-image-button"
+              onClick={() => setIsImageSectionCollapsed(!isImageSectionCollapsed)}
+              aria-label={isImageSectionCollapsed ? "Show images" : "Hide images"}
+            >
+              {isImageSectionCollapsed ? '▶' : '◀'}
+            </button>
+          </div>
           <div className="image-container">
             {imgSrc ? (
               <img
