@@ -4,6 +4,7 @@ import './Story.css';
 import {OpenAI as OAI} from "openai";
 import { useAuth } from './contexts/AuthContext';
 import * as storyService from './services/storyService';
+import BookView from './components/BookView';
 
 export default function Story() {
   const systemTemplate = "Act as a terminal for a zork clone text based dungeon adventure game based in {setting}. Respond ONLY with descriptions of the environment and react to basic commands like moving in a direction or picking up items. Begin the story in a randomly generated space and describe what the player sees. Only return json objects as responses. The objects should have the parameters \"story-text\", which is just a string of the generated description, \"possible-actions\", which is a list of possible actions that the user can take (use natural language with proper spacing, NOT underscores or snake_case), \"location\" which is an x,y pair that denotes the Euclidian distance from the starting location in steps with north and east being the positive directions. Also include the parameter \"dall-e-prompt\" which contains a generated prompt for the generative art ai dall-e to produce an artistic storybook illustration of the current description. The dall-e-prompt should always specify: 'Watercolor storybook illustration in a whimsical hand-painted style, warm lighting, soft edges, children's book aesthetic, detailed and charming,' followed by the scene description with rich visual details. Keep track of the user's actions in a parameter called \"action-history\" that is a list of the actions that the user has take so far, with the corresponding location that the action happened.";
@@ -32,6 +33,7 @@ export default function Story() {
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [isStoryLoading, setIsStoryLoading] = useState(false);
   const [isImageSectionCollapsed, setIsImageSectionCollapsed] = useState(false);
+  const [isBookViewOpen, setIsBookViewOpen] = useState(false);
 
   const oai = new OAI({
     apiKey: process.env.REACT_APP_OPENAI_API_KEY,
@@ -402,7 +404,17 @@ useEffect(() => {
       {/* Header */}
       <div className="story-header">
         <h2 className="story-intro">Welcome to {setting}</h2>
-        <h4 className="story-id">ID: {storyId}</h4>
+        <div className="header-controls">
+          <button
+            onClick={() => setIsBookViewOpen(true)}
+            className="book-view-toggle"
+            disabled={messages.length === 0}
+            title="Open Book View"
+          >
+            📖 Book View
+          </button>
+          <h4 className="story-id">ID: {storyId}</h4>
+        </div>
       </div>
 
       {/* Main Content Area - Split Layout */}
@@ -529,6 +541,17 @@ useEffect(() => {
         <div className="image-modal" onClick={() => toggleImageModal('')}>
           <img src={selectedImg} alt="Enlarged Scene" className="enlarged-image" />
         </div>
+      )}
+
+      {/* Book View */}
+      {isBookViewOpen && (
+        <BookView
+          messages={messages}
+          storyImages={storyImages}
+          possibleActions={possibleActions}
+          onActionClick={handleActionClick}
+          onClose={() => setIsBookViewOpen(false)}
+        />
       )}
     </div>
   );
