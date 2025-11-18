@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import AuthModal from './components/AuthModal';
 import './Landing.css';
@@ -11,7 +11,16 @@ export default function Landing() {
   const [authMode, setAuthMode] = useState('login');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const location = useLocation();
+  const { user, signOut, loading } = useAuth();
+
+  // Redirect logged-in users to dashboard (unless they're creating a new story)
+  useEffect(() => {
+    const createNew = location.state?.createNew;
+    if (!loading && user && !createNew) {
+      navigate('/dashboard');
+    }
+  }, [user, loading, navigate, location.state]);
 
   // Create stars on mount
   useEffect(() => {

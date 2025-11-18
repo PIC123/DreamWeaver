@@ -19,6 +19,7 @@ export default function Dashboard() {
     }
 
     loadUserStories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, navigate]);
 
   const loadUserStories = async () => {
@@ -66,7 +67,7 @@ export default function Dashboard() {
   };
 
   const handleNewStory = () => {
-    navigate('/');
+    navigate('/', { state: { createNew: true } });
   };
 
   const handleSignOut = async () => {
