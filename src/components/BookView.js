@@ -178,12 +178,12 @@ export default function BookView({
               {/* Story Text with Action */}
               <div className="page-text-content">
                 {leftScene.text ? (
-                  <div className="page-story-text">
+                  <>
                     {leftScene.action && (
-                      <><span className="page-story-action">{leftScene.action}</span> </>
+                      <div className="page-story-action">{leftScene.action}</div>
                     )}
-                    {leftScene.text}
-                  </div>
+                    <div className="page-story-text">{leftScene.text}</div>
+                  </>
                 ) : (
                   <div className="page-text-placeholder">
                     The story unfolds as ink meets parchment...
@@ -223,12 +223,12 @@ export default function BookView({
               {/* Story Text with Action */}
               <div className="page-text-content">
                 {rightScene.text ? (
-                  <div className="page-story-text">
+                  <>
                     {rightScene.action && (
-                      <><span className="page-story-action">{rightScene.action}</span> </>
+                      <div className="page-story-action">{rightScene.action}</div>
                     )}
-                    {rightScene.text}
-                  </div>
+                    <div className="page-story-text">{rightScene.text}</div>
+                  </>
                 ) : (
                   <div className="page-text-placeholder">
                     The story unfolds as ink meets parchment...

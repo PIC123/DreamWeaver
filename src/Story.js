@@ -171,12 +171,14 @@ export default function Story() {
       setBackgroundImage(supabaseUrl);
 
       // Update the storyImages array with permanent URL
-      // This will trigger the useEffect that saves the story automatically
-      setStoryImages(prevImages => {
-        const updatedImages = [...prevImages];
-        updatedImages[imageIndex] = supabaseUrl;
-        return updatedImages;
-      });
+      const updatedImages = [...storyImages];
+      updatedImages[imageIndex] = supabaseUrl;
+      setStoryImages(updatedImages);
+
+      // Explicitly save to database with Supabase URL
+      // We need to do this explicitly because the state update might not trigger useEffect in time
+      console.log('Saving story with Supabase image URL...');
+      await saveStory(storyID);
     } catch (error) {
       console.error('Error generating/uploading image:', error);
       setIsImageLoading(false);
@@ -281,7 +283,18 @@ export default function Story() {
       getImage(parsed["dall-e-prompt"], storyId);
     } catch (error) {
       console.error('Error in handleActionClick:', error);
-      setMessages([...messages, { text: action, sender: 'human' }, { text: 'An error occurred. Please try again.', sender: 'system' }]);
+      let errorMessage = 'An error occurred. Please try again.';
+
+      // Check for specific error types
+      if (error.status === 429) {
+        errorMessage = '⚠️ OpenAI API quota exceeded. Please check your OpenAI account billing and usage limits at platform.openai.com';
+      } else if (error.message?.includes('quota')) {
+        errorMessage = '⚠️ OpenAI API quota exceeded. Please check your OpenAI account billing and usage limits.';
+      } else if (error.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+
+      setMessages([...messages, { text: action, sender: 'human' }, { text: errorMessage, sender: 'system' }]);
       setIsStoryLoading(false);
     }
   };
@@ -329,7 +342,18 @@ export default function Story() {
       getImage(parsed["dall-e-prompt"], storyId);
     } catch (error) {
       console.error('Error in handleSubmit:', error);
-      setMessages([...messages, { text: userInput, sender: 'human' }, { text: 'An error occurred. Please try again.', sender: 'system' }]);
+      let errorMessage = 'An error occurred. Please try again.';
+
+      // Check for specific error types
+      if (error.status === 429) {
+        errorMessage = '⚠️ OpenAI API quota exceeded. Please check your OpenAI account billing and usage limits at platform.openai.com';
+      } else if (error.message?.includes('quota')) {
+        errorMessage = '⚠️ OpenAI API quota exceeded. Please check your OpenAI account billing and usage limits.';
+      } else if (error.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+
+      setMessages([...messages, { text: userInput, sender: 'human' }, { text: errorMessage, sender: 'system' }]);
       setIsStoryLoading(false);
     }
   };
