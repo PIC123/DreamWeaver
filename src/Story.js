@@ -2,16 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './Story.css';
 import {OpenAI as OAI} from "openai";
+import { useAuth } from './contexts/AuthContext';
+import * as storyService from './services/storyService';
 
 export default function Story() {
   const systemTemplate = "Act as a terminal for a zork clone text based dungeon adventure game based in {setting}. Respond ONLY with descriptions of the environment and react to basic commands like moving in a direction or picking up items. Begin the story in a randomly generated space and describe what the player sees. Only return json objects as responses. The objects should have the parameters \"story-text\", which is just a string of the generated description, \"possible-actions\", which is a list of possible actions that the user can take (use natural language with proper spacing, NOT underscores or snake_case), \"location\" which is an x,y pair that denotes the Euclidian distance from the starting location in steps with north and east being the positive directions. Also include the parameter \"dall-e-prompt\" which contains a generated prompt for the generative art ai dall-e to produce an artistic storybook illustration of the current description. The dall-e-prompt should always specify: 'Watercolor storybook illustration in a whimsical hand-painted style, warm lighting, soft edges, children's book aesthetic, detailed and charming,' followed by the scene description with rich visual details. Keep track of the user's actions in a parameter called \"action-history\" that is a list of the actions that the user has take so far, with the corresponding location that the action happened.";
-  const STORAGE_BASE_URL = 'https://dreamweaverdata.blob.core.windows.net/story-images/';
-
-  const PARTITION = "TestStories";
-
 
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const setting = location.state.setting;  // Getting the setting entered by the user
   const storyIdLoaded = location.state.storyId;
 
@@ -77,139 +76,107 @@ export default function Story() {
 
   async function loadStory() {
     setStoryId(storyIdLoaded);
-    const data = {
-      "storyID": storyIdLoaded,
-      "partition": PARTITION
-    }
-    const resp = await fetch('https://dreamweaver-api.azurewebsites.net/api/LoadStory', {
-      method: 'POST', // or 'PUT'
-      headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "DELETE, POST, GET, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-          'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    })
-    const resp_json = await resp.json()
-    console.log("Loaded Story:");
-    console.log(resp_json);
 
-    setImgSrc(resp_json.imgURL);
-    setBackgroundImage(resp_json.imgURL);
-    setStoryImages(JSON.parse(resp_json.storyImages));
-    const loadedHistory = JSON.parse(resp_json.messageHistory);
-    setMessageHistory(loadedHistory);
-    setMessages(JSON.parse(resp_json.messages));
-    setPossibleActions(JSON.parse(resp_json.possibleActions));
-    console.log(storyImages);
-    console.log(messageHistory);
-    console.log(messages);
-    console.log(possibleActions);
-  }
+    try {
+      const { data, error } = await storyService.loadStory(storyIdLoaded);
 
-  async function savePrompt(prompt) {
-    setCurrentPrompt(prompt);
-    const data = {
-      "prompt": prompt,
+      if (error) {
+        console.error("Error loading story:", error);
+        return;
+      }
+
+      if (!data) {
+        console.error("Story not found");
+        return;
+      }
+
+      console.log("Loaded Story:", data);
+
+      setImgSrc(data.img_url);
+      setBackgroundImage(data.img_url);
+      setStoryImages(data.story_images || []);
+      setMessageHistory(data.message_history || [["system", systemTemplate]]);
+      setMessages(data.messages || []);
+      setPossibleActions(data.possible_actions || []);
+    } catch (error) {
+      console.error("Error loading story:", error);
     }
-    const resp = await fetch('https://dreamweaver-api.azurewebsites.net/api/SaveTDPrompt', {
-      method: 'POST', // or 'PUT'
-      headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "DELETE, POST, GET, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-          'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-    return resp
   }
 
   async function saveStory(storyID) {
-    console.log("Saving Story");
-    const data = {
-      "storyID": storyID,
-      "partition": PARTITION,
-      "imgURL": imgSrc,
-      "storyImages": storyImages,
-      "messageHistory": messageHistory,
-      "messages": messages,
-      "possibleActions": possibleActions
+    console.log("Saving Story to Supabase");
+
+    try {
+      const { data, error } = await storyService.saveStory({
+        storyId: storyID,
+        userId: user?.id || null,
+        setting: setting,
+        imgUrl: imgSrc,
+        storyImages: storyImages,
+        messageHistory: messageHistory,
+        messages: messages,
+        possibleActions: possibleActions,
+        isAnonymous: !user
+      });
+
+      if (error) {
+        console.error("Error saving story:", error);
+        return { error };
+      }
+
+      console.log("Story saved successfully:", data);
+      return { data, error: null };
+    } catch (error) {
+      console.error("Error saving story:", error);
+      return { error };
     }
-    console.log(data);
-    const resp = await fetch('https://dreamweaver-api.azurewebsites.net/api/StoreData', {
-      method: 'POST', // or 'PUT'
-      headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "DELETE, POST, GET, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-          'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-    return resp
   }
 
   async function getImage(prompt, storyID) {
     setIsImageLoading(true);
-    // Keep previous image visible while loading
+    setCurrentPrompt(prompt);
+
     try {
       // Generate the image with DALL-E
       const response = await oai.images.generate({
-            model: "dall-e-3",
-            prompt: prompt });
+        model: "dall-e-3",
+        prompt: prompt
+      });
 
       const openAIImageUrl = response.data[0].url;
       const imageIndex = storyImages.length;
-      const blobStorageUrl = STORAGE_BASE_URL + storyID + "/" + imageIndex + ".png";
 
       // Display the OpenAI image immediately for fast user experience
       setImgSrc(openAIImageUrl);
-      setBackgroundImage(openAIImageUrl); // Update background with new image
+      setBackgroundImage(openAIImageUrl);
       setStoryImages([...storyImages, openAIImageUrl]);
       setIsImageLoading(false);
 
-      // Save to blob storage in the background (don't await)
-      // Once saved, update to the permanent blob storage URL
-      saveImage(openAIImageUrl, storyID, imageIndex)
-        .then(() => {
-          // Update to blob storage URL after successful save
-          setImgSrc(blobStorageUrl);
-          setBackgroundImage(blobStorageUrl);
+      // Upload to Supabase Storage in the background
+      storyService.uploadImage(openAIImageUrl, storyID, imageIndex)
+        .then(({ data: supabaseUrl, error }) => {
+          if (error) {
+            console.error('Error uploading image to Supabase:', error);
+            return;
+          }
+
+          // Update to Supabase Storage URL after successful upload
+          setImgSrc(supabaseUrl);
+          setBackgroundImage(supabaseUrl);
           setStoryImages(prevImages => {
             const updatedImages = [...prevImages];
-            updatedImages[imageIndex] = blobStorageUrl;
+            updatedImages[imageIndex] = supabaseUrl;
             return updatedImages;
           });
         })
         .catch(error => {
-          console.error('Error saving image to blob storage:', error);
-          // Keep using OpenAI URL if blob storage fails
+          console.error('Error uploading image to Supabase:', error);
+          // Keep using OpenAI URL if Supabase upload fails
         });
     } catch (error) {
       console.error('Error generating image:', error);
       setIsImageLoading(false);
     }
-  }
-
-  async function saveImage(imgUrl, storyID, imgID) {
-    const data = {
-      "imgURL": imgUrl,
-      "storyID": storyID,
-      "imgID": imgID
-    }
-    const resp = await fetch('https://dreamweaver-api.azurewebsites.net/api/SaveImgToBlob', {
-      method: 'POST', // or 'PUT'
-      headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "DELETE, POST, GET, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-          'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    })
-    return resp
   }
 
   useEffect(() => {
@@ -236,9 +203,11 @@ export default function Story() {
         setPossibleActions(parsed["possible-actions"]);
         scrollToBottom();
 
-        // Load image and save prompt in parallel (non-blocking)
-        savePrompt(parsed["dall-e-prompt"]);
+        // Load image (non-blocking)
         getImage(parsed["dall-e-prompt"], new_story_id);
+
+        // Save initial story to Supabase
+        saveStory(new_story_id);
     }
     console.log("storyIdLoaded: " + storyIdLoaded);
     console.log(storyIdLoaded === '');
@@ -304,8 +273,7 @@ export default function Story() {
       setPossibleActions(parsed["possible-actions"]);
       setIsStoryLoading(false);
 
-      // Load image and save prompt in parallel (non-blocking)
-      savePrompt(parsed["dall-e-prompt"]);
+      // Load image (non-blocking)
       getImage(parsed["dall-e-prompt"], storyId);
     } catch (error) {
       console.error('Error in handleActionClick:', error);
@@ -353,8 +321,7 @@ export default function Story() {
       setPossibleActions(parsed["possible-actions"]);
       setIsStoryLoading(false);
 
-      // Load image and save prompt in parallel (non-blocking)
-      savePrompt(parsed["dall-e-prompt"]);
+      // Load image (non-blocking)
       getImage(parsed["dall-e-prompt"], storyId);
     } catch (error) {
       console.error('Error in handleSubmit:', error);

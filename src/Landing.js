@@ -77,6 +77,9 @@ export default function Landing() {
             </button>
             {showUserMenu && (
               <div className="user-menu-dropdown">
+                <button onClick={() => navigate('/dashboard')} className="user-menu-item">
+                  My Stories
+                </button>
                 <button onClick={handleSignOut} className="user-menu-item">
                   Sign Out
                 </button>
