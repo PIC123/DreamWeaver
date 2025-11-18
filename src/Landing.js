@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from './contexts/AuthContext';
+import AuthModal from './components/AuthModal';
 import './Landing.css';
 
 export default function Landing() {
   const [setting, setSetting] = useState('');
   const [storyId, setStoryId] = useState('');
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
   // Create stars on mount
   useEffect(() => {
@@ -43,11 +49,51 @@ export default function Landing() {
     }
   };
 
+  const openAuthModal = (mode) => {
+    setAuthMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    setShowUserMenu(false);
+  };
+
   return (
     <div className="landing-container">
       <div className="stars"></div>
       <div className="nebula nebula-1"></div>
       <div className="nebula nebula-2"></div>
+
+      {/* User Menu / Auth Buttons */}
+      <div className="auth-header">
+        {user ? (
+          <div className="user-menu-container">
+            <button
+              className="user-menu-button"
+              onClick={() => setShowUserMenu(!showUserMenu)}
+            >
+              {user.email}
+            </button>
+            {showUserMenu && (
+              <div className="user-menu-dropdown">
+                <button onClick={handleSignOut} className="user-menu-item">
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="auth-buttons">
+            <button onClick={() => openAuthModal('login')} className="auth-header-button">
+              Sign In
+            </button>
+            <button onClick={() => openAuthModal('signup')} className="auth-header-button signup">
+              Sign Up
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="content-wrapper">
         <h1 className="magical-title">
@@ -97,6 +143,12 @@ export default function Landing() {
       </div>
 
       <div className="floating-book"></div>
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        mode={authMode}
+      />
     </div>
   );
 }

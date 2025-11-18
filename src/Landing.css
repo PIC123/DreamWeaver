@@ -12,6 +12,120 @@
   touch-action: manipulation;
 }
 
+/* Auth Header */
+.auth-header {
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+  z-index: 100;
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.auth-header-button {
+  padding: 0.65rem 1.5rem;
+  background: rgba(30, 25, 60, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(183, 148, 246, 0.4);
+  border-radius: 12px;
+  color: #e0b3ff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-weight: 500;
+}
+
+.auth-header-button:hover {
+  background: rgba(30, 25, 60, 0.9);
+  border-color: #b794f6;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.auth-header-button.signup {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+}
+
+.auth-header-button.signup:hover {
+  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+}
+
+/* User Menu */
+.user-menu-container {
+  position: relative;
+}
+
+.user-menu-button {
+  padding: 0.65rem 1.5rem;
+  background: rgba(30, 25, 60, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(183, 148, 246, 0.4);
+  border-radius: 12px;
+  color: #e0b3ff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-weight: 500;
+}
+
+.user-menu-button:hover {
+  background: rgba(30, 25, 60, 1);
+  border-color: #b794f6;
+  color: #fff;
+}
+
+.user-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 200px;
+  background: rgba(30, 25, 60, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(183, 148, 246, 0.4);
+  border-radius: 12px;
+  padding: 0.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: fadeInDown 0.3s ease-out;
+}
+
+.user-menu-item {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #e0b3ff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  text-align: left;
+}
+
+.user-menu-item:hover {
+  background: rgba(183, 148, 246, 0.2);
+  color: #fff;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Animated Stars */
 .stars {
   position: absolute;
