@@ -8,29 +8,50 @@ export default function BookView({
   onActionClick,
   onClose
 }) {
-  const [currentSpread, setCurrentSpread] = useState(0); // Which two-page spread we're on
+  const [currentSpread, setCurrentSpread] = useState(0); // Which spread (two-page view) we're on
   const [isFlipping, setIsFlipping] = useState(false);
   const [flipDirection, setFlipDirection] = useState('forward'); // 'forward' or 'backward'
   const [showPageJump, setShowPageJump] = useState(false);
   const [jumpToPage, setJumpToPage] = useState('');
+  const [customAction, setCustomAction] = useState('');
+  const [previousSceneCount, setPreviousSceneCount] = useState(0);
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
 
-  // Convert messages to pages (each message + image = 1 page)
-  const pages = messages.map((message, index) => ({
-    text: message.text,
-    image: storyImages[index] || null,
-    sender: message.sender
-  }));
+  // Convert messages to scenes (only system messages, each with user action + image + text)
+  const scenes = messages
+    .map((message, index) => {
+      if (message.sender === 'system') {
+        // Find the previous user action (if any)
+        let userAction = null;
+        for (let i = index - 1; i >= 0; i--) {
+          if (messages[i].sender === 'user') {
+            userAction = messages[i].text;
+            break;
+          }
+        }
 
-  const totalPages = pages.length;
-  const totalSpreads = Math.ceil(totalPages / 2);
+        // Find the corresponding image index (count of system messages up to this point)
+        const systemMessageIndex = messages.slice(0, index + 1).filter(m => m.sender === 'system').length - 1;
 
-  // Get the two pages for the current spread
-  const leftPageIndex = currentSpread * 2;
-  const rightPageIndex = currentSpread * 2 + 1;
-  const leftPage = pages[leftPageIndex];
-  const rightPage = pages[rightPageIndex];
+        return {
+          text: message.text,
+          image: storyImages[systemMessageIndex] || null,
+          action: userAction
+        };
+      }
+      return null;
+    })
+    .filter(scene => scene !== null);
+
+  const totalScenes = scenes.length;
+  const totalSpreads = Math.ceil(totalScenes / 2);
+
+  // Calculate which scenes are visible on current spread
+  const leftSceneIndex = currentSpread * 2;
+  const rightSceneIndex = currentSpread * 2 + 1;
+  const leftScene = scenes[leftSceneIndex] || null;
+  const rightScene = scenes[rightSceneIndex] || null;
 
   const canGoBack = currentSpread > 0;
   const canGoForward = currentSpread < totalSpreads - 1;
@@ -55,12 +76,21 @@ export default function BookView({
     }, 600);
   };
 
+  const handleCustomAction = (e) => {
+    e.preventDefault();
+    if (customAction.trim()) {
+      onActionClick(customAction);
+      setCustomAction('');
+    }
+  };
+
   const handlePageJump = (e) => {
     e.preventDefault();
-    const pageNum = parseInt(jumpToPage);
-    if (pageNum >= 1 && pageNum <= totalPages) {
-      const spreadNum = Math.floor((pageNum - 1) / 2);
-      setCurrentSpread(spreadNum);
+    const sceneNum = parseInt(jumpToPage);
+    if (sceneNum >= 1 && sceneNum <= totalScenes) {
+      // Calculate which spread contains this scene
+      const targetSpread = Math.floor((sceneNum - 1) / 2);
+      setCurrentSpread(targetSpread);
       setJumpToPage('');
       setShowPageJump(false);
     }
@@ -96,6 +126,17 @@ export default function BookView({
     touchStartY.current = null;
   };
 
+  // Track scene count to detect new content
+  useEffect(() => {
+    if (scenes.length > previousSceneCount) {
+      setPreviousSceneCount(scenes.length);
+      // Jump to the last spread when new content arrives
+      const lastSpread = Math.ceil(scenes.length / 2) - 1;
+      setCurrentSpread(lastSpread);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scenes.length]);
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -116,21 +157,42 @@ export default function BookView({
         ✕ Exit Book View
       </button>
 
-      {/* Book */}
+      {/* Book - Two-Page Spread */}
       <div className={`book ${isFlipping ? `flipping-${flipDirection}` : ''}`}>
-        {/* Left page */}
+        {/* Left Page */}
         <div className="page page-left">
-          {leftPage ? (
+          {leftScene ? (
             <>
-              <div className="page-content">
-                {leftPage.image && (
-                  <div className="page-image-wrapper">
-                    <img src={leftPage.image} alt="Story scene" className="page-image" />
+              {/* Image or Loading Placeholder */}
+              <div className="page-image-wrapper-large">
+                {leftScene.image ? (
+                  <img src={leftScene.image} alt="Story scene" className="page-image-large" />
+                ) : (
+                  <div className="page-image-placeholder">
+                    <div className="page-image-placeholder-icon">📖</div>
+                    <div className="page-image-placeholder-text">Weaving your tale...</div>
                   </div>
                 )}
-                <div className="page-text">{leftPage.text}</div>
               </div>
-              <div className="page-number">{leftPageIndex + 1}</div>
+
+              {/* Story Text with Action */}
+              <div className="page-text-content">
+                {leftScene.text ? (
+                  <div className="page-story-text">
+                    {leftScene.action && (
+                      <><span className="page-story-action">{leftScene.action}</span> </>
+                    )}
+                    {leftScene.text}
+                  </div>
+                ) : (
+                  <div className="page-text-placeholder">
+                    The story unfolds as ink meets parchment...
+                  </div>
+                )}
+              </div>
+
+              {/* Page Number */}
+              <div className="page-number">{leftSceneIndex + 1}</div>
             </>
           ) : (
             <div className="page-content empty">
@@ -139,26 +201,47 @@ export default function BookView({
           )}
         </div>
 
-        {/* Book spine */}
+        {/* Book Spine */}
         <div className="book-spine"></div>
 
-        {/* Right page */}
+        {/* Right Page */}
         <div className="page page-right">
-          {rightPage ? (
+          {rightScene ? (
             <>
-              <div className="page-content">
-                {rightPage.image && (
-                  <div className="page-image-wrapper">
-                    <img src={rightPage.image} alt="Story scene" className="page-image" />
+              {/* Image or Loading Placeholder */}
+              <div className="page-image-wrapper-large">
+                {rightScene.image ? (
+                  <img src={rightScene.image} alt="Story scene" className="page-image-large" />
+                ) : (
+                  <div className="page-image-placeholder">
+                    <div className="page-image-placeholder-icon">📖</div>
+                    <div className="page-image-placeholder-text">Weaving your tale...</div>
                   </div>
                 )}
-                <div className="page-text">{rightPage.text}</div>
               </div>
-              <div className="page-number">{rightPageIndex + 1}</div>
+
+              {/* Story Text with Action */}
+              <div className="page-text-content">
+                {rightScene.text ? (
+                  <div className="page-story-text">
+                    {rightScene.action && (
+                      <><span className="page-story-action">{rightScene.action}</span> </>
+                    )}
+                    {rightScene.text}
+                  </div>
+                ) : (
+                  <div className="page-text-placeholder">
+                    The story unfolds as ink meets parchment...
+                  </div>
+                )}
+              </div>
+
+              {/* Page Number */}
+              <div className="page-number">{rightSceneIndex + 1}</div>
             </>
           ) : (
             <div className="page-content empty">
-              <div className="end-of-story">To be continued...</div>
+              <div className="end-of-story">End of Story</div>
             </div>
           )}
         </div>
@@ -178,16 +261,16 @@ export default function BookView({
         {/* Page counter */}
         <div className="page-counter">
           <span className="current-pages">
-            {leftPageIndex + 1}
-            {rightPage && `-${rightPageIndex + 1}`}
+            {leftSceneIndex + 1}
+            {rightScene && `-${rightSceneIndex + 1}`}
           </span>
           <span className="page-divider">/</span>
-          <span className="total-pages">{totalPages}</span>
+          <span className="total-pages">{totalScenes}</span>
           <button
             className="jump-to-page-button"
             onClick={() => setShowPageJump(!showPageJump)}
           >
-            Jump to Page
+            Jump to Scene
           </button>
         </div>
 
@@ -208,10 +291,10 @@ export default function BookView({
             <input
               type="number"
               min="1"
-              max={totalPages}
+              max={totalScenes}
               value={jumpToPage}
               onChange={(e) => setJumpToPage(e.target.value)}
-              placeholder={`1-${totalPages}`}
+              placeholder={`1-${totalScenes}`}
               className="page-jump-input"
               autoFocus
             />
@@ -227,20 +310,40 @@ export default function BookView({
         </div>
       )}
 
-      {/* Actions (shown when on the last page) */}
-      {currentSpread === totalSpreads - 1 && possibleActions && possibleActions.length > 0 && (
+      {/* Actions (shown when on the last spread) */}
+      {currentSpread === totalSpreads - 1 && (
         <div className="book-actions">
           <h3>What happens next?</h3>
-          <div className="book-actions-grid">
-            {possibleActions.map((action, index) => (
-              <button
-                key={index}
-                onClick={() => onActionClick(action)}
-                className="book-action-button"
-              >
-                {action}
+
+          <div className="book-actions-container">
+            {/* Predefined actions */}
+            {possibleActions && possibleActions.length > 0 && (
+              <div className="book-actions-grid">
+                {possibleActions.map((action, index) => (
+                  <button
+                    key={index}
+                    onClick={() => onActionClick(action)}
+                    className="book-action-button"
+                  >
+                    {action}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Custom action input */}
+            <form onSubmit={handleCustomAction} className="custom-action-form">
+              <input
+                type="text"
+                value={customAction}
+                onChange={(e) => setCustomAction(e.target.value)}
+                placeholder="Or type your own action..."
+                className="custom-action-input"
+              />
+              <button type="submit" className="custom-action-submit">
+                Continue
               </button>
-            ))}
+            </form>
           </div>
         </div>
       )}

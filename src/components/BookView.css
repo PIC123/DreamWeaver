@@ -5,7 +5,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, #2c1810 0%, #4a2c1a 50%, #3d2416 100%);
+  background: linear-gradient(135deg, #1a1108 0%, #2a1810 50%, #1f1309 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -54,14 +54,9 @@
 /* Individual pages */
 .page {
   flex: 1;
-  background: linear-gradient(135deg, #f9f6f0 0%, #ebe4d8 100%);
-  position: relative;
-  padding: 3rem 2.5rem;
-  border: 1px solid #d4c4a8;
-  overflow: hidden;
-
-  /* Old paper texture */
+  background: #f5f1e8;
   background-image:
+    linear-gradient(135deg, #f9f6f0 0%, #ebe4d8 100%),
     repeating-linear-gradient(
       0deg,
       transparent,
@@ -69,6 +64,14 @@
       rgba(160, 140, 100, 0.02) 2px,
       rgba(160, 140, 100, 0.02) 4px
     );
+  position: relative;
+  padding: 2rem 1.5rem;
+  border: 1px solid #d4c4a8;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .page-left {
@@ -141,15 +144,16 @@
 .book-cover-text {
   font-size: 3rem;
   font-weight: 300;
-  color: #6b4423;
+  color: #4a2c1a;
   text-align: center;
   font-family: 'Georgia', serif;
 }
 
 .end-of-story {
   font-size: 1.5rem;
-  color: #8b7355;
+  color: #5a4533;
   font-style: italic;
+  font-weight: 600;
 }
 
 /* Page images */
@@ -172,24 +176,153 @@
   object-fit: cover;
 }
 
+/* Large image for two-page scene layout */
+.page-image-wrapper-large {
+  width: 100%;
+  height: 45%;
+  min-height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 12px;
+  overflow: visible;
+  position: relative;
+}
+
+.page-image-large {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
+  mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, rgba(0,0,0,1) 70%, rgba(0,0,0,0) 100%);
+  -webkit-mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, rgba(0,0,0,1) 70%, rgba(0,0,0,0) 100%);
+}
+
+/* Loading placeholder for images */
+.page-image-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(212, 196, 168, 0.15) 0%, rgba(160, 140, 100, 0.08) 100%);
+  border: 2px dashed rgba(139, 115, 85, 0.3);
+  border-radius: 12px;
+  color: #8b7355;
+  font-family: 'Georgia', serif;
+  font-style: italic;
+}
+
+.page-image-placeholder-icon {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.4;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.page-image-placeholder-text {
+  font-size: 0.9rem;
+  opacity: 0.6;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Loading placeholder for text */
+.page-text-placeholder {
+  color: #8b7355;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-style: italic;
+  text-align: center;
+  opacity: 0.5;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Page text content wrapper */
+.page-text-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #b8976a transparent;
+}
+
+.page-text-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.page-text-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.page-text-content::-webkit-scrollbar-thumb {
+  background: #b8976a;
+  border-radius: 2px;
+}
+
 /* Page text */
 .page-text {
-  color: #3d2416;
-  font-size: 1.1rem;
-  line-height: 1.8;
+  color: #1a0f0a;
+  font-size: 0.95rem;
+  line-height: 1.7;
   font-family: 'Georgia', 'Times New Roman', serif;
   text-align: justify;
   flex: 1;
+  font-weight: 500;
+}
+
+/* Combined story text with action */
+.page-story-text {
+  color: #1a0f0a;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  text-align: justify;
+  flex: 1;
+  font-weight: 500;
+}
+
+.page-story-action {
+  display: inline;
+  font-weight: 600;
+  color: #4a2c1a;
+}
+
+.page-story-action::before {
+  content: '"';
+  color: #6b4423;
+}
+
+.page-story-action::after {
+  content: '"';
+  color: #6b4423;
+  margin-right: 0.5rem;
 }
 
 /* Page numbers */
 .page-number {
   position: absolute;
   bottom: 1.5rem;
-  color: #8b7355;
+  color: #5a4533;
   font-size: 0.9rem;
   font-family: 'Georgia', serif;
   font-style: italic;
+  font-weight: 600;
 }
 
 .page-left .page-number {
@@ -416,48 +549,114 @@
 /* Book actions */
 .book-actions {
   position: fixed;
-  bottom: 2rem;
+  bottom: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(15, 12, 41, 0.95);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(183, 148, 246, 0.5);
   border-radius: 12px;
-  padding: 1.5rem;
-  max-width: 600px;
+  padding: 1rem 1.5rem;
+  max-width: 1200px;
   width: 90%;
   z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .book-actions h3 {
   color: #e0b3ff;
-  margin: 0 0 1rem 0;
-  font-size: 1.1rem;
+  margin: 0;
+  font-size: 0.95rem;
   font-weight: 500;
   text-align: center;
 }
 
+.book-actions-container {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .book-actions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .book-action-button {
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 1rem;
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.5), rgba(118, 75, 162, 0.5));
   border: 1px solid rgba(183, 148, 246, 0.6);
-  border-radius: 10px;
+  border-radius: 8px;
   color: #ffffff;
   cursor: pointer;
   transition: all 0.3s ease;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-family: 'Georgia', serif;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .book-action-button:hover {
   background: linear-gradient(135deg, #667eea, #764ba2);
   border-color: #b794f6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.5);
+}
+
+/* Custom action form */
+.custom-action-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex: 1;
+  min-width: 250px;
+}
+
+.custom-action-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  background: rgba(30, 25, 60, 0.6);
+  border: 1px solid rgba(183, 148, 246, 0.4);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.85rem;
+  font-family: 'Georgia', serif;
+  transition: all 0.3s ease;
+  min-width: 150px;
+}
+
+.custom-action-input::placeholder {
+  color: rgba(224, 179, 255, 0.5);
+}
+
+.custom-action-input:focus {
+  outline: none;
+  border-color: #b794f6;
+  box-shadow: 0 0 15px rgba(183, 148, 246, 0.3);
+  background: rgba(30, 25, 60, 0.8);
+}
+
+.custom-action-submit {
+  padding: 0.5rem 1.25rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.85rem;
+  font-family: 'Georgia', serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.custom-action-submit:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 20px rgba(102, 126, 234, 0.5);
 }
@@ -521,11 +720,22 @@
   }
 
   .page {
-    padding: 1.5rem 1rem;
+    padding: 1rem 0.75rem;
+  }
+
+  .page-image-wrapper-large {
+    height: 40%;
+    min-height: 150px;
+  }
+
+  .page-action {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
   }
 
   .page-text {
-    font-size: 0.95rem;
+    font-size: 0.85rem;
+    line-height: 1.6;
   }
 
   .book-controls {
@@ -563,6 +773,44 @@
     bottom: 80px;
     right: 20px;
   }
+
+  .book-actions {
+    bottom: 1rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .book-actions h3 {
+    font-size: 0.85rem;
+  }
+
+  .book-actions-container {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .book-actions-grid {
+    width: 100%;
+  }
+
+  .book-action-button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .custom-action-form {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .custom-action-input {
+    font-size: 0.8rem;
+    padding: 0.5rem;
+  }
+
+  .custom-action-submit {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
 }
 
 /* Mobile landscape */
@@ -572,11 +820,21 @@
   }
 
   .page {
-    padding: 1rem;
+    padding: 0.75rem 0.5rem;
+  }
+
+  .page-image-wrapper-large {
+    height: 35%;
+    min-height: 120px;
+  }
+
+  .page-action {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
   }
 
   .page-text {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     line-height: 1.5;
   }
 

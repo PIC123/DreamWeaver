@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import AuthModal from './components/AuthModal';
+import { OpenAI as OAI } from "openai";
 import './Landing.css';
 
 export default function Landing() {
@@ -10,9 +11,15 @@ export default function Landing() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isGeneratingSetting, setIsGeneratingSetting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut, loading } = useAuth();
+
+  const oai = new OAI({
+    apiKey: process.env.REACT_APP_OPENAI_API_KEY,
+    dangerouslyAllowBrowser: true,
+  });
 
   // Redirect logged-in users to dashboard (unless they're creating a new story)
   useEffect(() => {
@@ -68,6 +75,47 @@ export default function Landing() {
     setShowUserMenu(false);
   };
 
+  const generateRandomSetting = async () => {
+    setIsGeneratingSetting(true);
+    try {
+      const response = await oai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: "You are a creative story setting generator. Generate unique, exciting, and imaginative story settings."
+          },
+          {
+            role: "user",
+            content: "Generate a single creative and exciting setting for a text-based adventure game. Make it unique, interesting, and immersive. It can be fantasy, sci-fi, historical, or any genre. Keep it to one short sentence (5-15 words). Just return the setting, nothing else."
+          }
+        ],
+        max_tokens: 50,
+        temperature: 1.2
+      });
+
+      const generatedSetting = response.choices[0].message.content.trim();
+      setSetting(generatedSetting);
+    } catch (error) {
+      console.error('Error generating setting:', error);
+      // Fallback settings if API fails
+      const fallbackSettings = [
+        "A mystical floating island above the clouds",
+        "An underwater city of bioluminescent creatures",
+        "A steampunk Victorian London with time portals",
+        "An enchanted forest where seasons change every hour",
+        "A space station at the edge of a black hole",
+        "A medieval castle that exists in multiple dimensions",
+        "A post-apocalyptic desert with ancient ruins",
+        "A magical library where books come alive at night"
+      ];
+      const randomIndex = Math.floor(Math.random() * fallbackSettings.length);
+      setSetting(fallbackSettings[randomIndex]);
+    } finally {
+      setIsGeneratingSetting(false);
+    }
+  };
+
   return (
     <div className="landing-container">
       <div className="stars"></div>
@@ -117,15 +165,26 @@ export default function Landing() {
         <div className="input-container">
           <div className="input-group">
             <label htmlFor="setting-input">Begin Your Journey</label>
-            <input
-              id="setting-input"
-              type="text"
-              value={setting}
-              onChange={handleChange}
-              onKeyPress={handleKeyPress}
-              placeholder="Enter a magical setting..."
-              className="magical-input"
-            />
+            <div className="input-with-button">
+              <input
+                id="setting-input"
+                type="text"
+                value={setting}
+                onChange={handleChange}
+                onKeyPress={handleKeyPress}
+                placeholder="Enter a magical setting..."
+                className="magical-input"
+                disabled={isGeneratingSetting}
+              />
+              <button
+                onClick={generateRandomSetting}
+                className="random-setting-button"
+                disabled={isGeneratingSetting}
+                title="Generate random setting"
+              >
+                {isGeneratingSetting ? '✨' : '🎲'}
+              </button>
+            </div>
           </div>
 
           <div className="divider">
