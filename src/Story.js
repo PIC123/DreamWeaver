@@ -154,29 +154,31 @@ export default function Story() {
       setStoryImages([...storyImages, openAIImageUrl]);
       setIsImageLoading(false);
 
-      // Upload to Supabase Storage in the background
-      storyService.uploadImage(openAIImageUrl, storyID, imageIndex)
-        .then(({ data: supabaseUrl, error }) => {
-          if (error) {
-            console.error('Error uploading image to Supabase:', error);
-            return;
-          }
+      // Upload to Supabase Storage and wait for completion
+      console.log('Uploading image to Supabase Storage...');
+      const { data: supabaseUrl, error } = await storyService.uploadImage(openAIImageUrl, storyID, imageIndex);
 
-          // Update to Supabase Storage URL after successful upload
-          setImgSrc(supabaseUrl);
-          setBackgroundImage(supabaseUrl);
-          setStoryImages(prevImages => {
-            const updatedImages = [...prevImages];
-            updatedImages[imageIndex] = supabaseUrl;
-            return updatedImages;
-          });
-        })
-        .catch(error => {
-          console.error('Error uploading image to Supabase:', error);
-          // Keep using OpenAI URL if Supabase upload fails
-        });
+      if (error) {
+        console.error('Error uploading image to Supabase:', error);
+        console.warn('Keeping temporary OpenAI URL - image will expire in a few hours');
+        // Keep using OpenAI URL if Supabase upload fails
+        return;
+      }
+
+      // Update to permanent Supabase Storage URL
+      console.log('Image uploaded successfully to:', supabaseUrl);
+      setImgSrc(supabaseUrl);
+      setBackgroundImage(supabaseUrl);
+
+      // Update the storyImages array with permanent URL
+      // This will trigger the useEffect that saves the story automatically
+      setStoryImages(prevImages => {
+        const updatedImages = [...prevImages];
+        updatedImages[imageIndex] = supabaseUrl;
+        return updatedImages;
+      });
     } catch (error) {
-      console.error('Error generating image:', error);
+      console.error('Error generating/uploading image:', error);
       setIsImageLoading(false);
     }
   }
