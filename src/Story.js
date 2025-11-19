@@ -244,11 +244,9 @@ export default function Story() {
   }, [messages]);
 
   useEffect(() => {
-    scrollToEnd(); // Scroll to bottom when messages state changes
-    // Only save if storyId is defined (not on initial render)
-    if (storyId) {
-      saveStory(storyId);
-    }
+    scrollToEnd(); // Scroll to bottom when storyImages changes
+    // Note: We don't auto-save here because getImage() explicitly saves
+    // after uploading to Supabase with the permanent URL
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storyImages]);
   
