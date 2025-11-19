@@ -105,7 +105,7 @@ export default function Story() {
     }
   }
 
-  async function saveStory(storyID) {
+  async function saveStory(storyID, overrideImages = null, overrideImgUrl = null) {
     console.log("Saving Story to Supabase");
 
     try {
@@ -113,8 +113,8 @@ export default function Story() {
         storyId: storyID,
         userId: user?.id || null,
         setting: setting,
-        imgUrl: imgSrc,
-        storyImages: storyImages,
+        imgUrl: overrideImgUrl || imgSrc,
+        storyImages: overrideImages || storyImages,
         messageHistory: messageHistory,
         messages: messages,
         possibleActions: possibleActions,
@@ -176,9 +176,9 @@ export default function Story() {
       setStoryImages(updatedImages);
 
       // Explicitly save to database with Supabase URL
-      // We need to do this explicitly because the state update might not trigger useEffect in time
+      // Pass updated images directly to avoid race condition with state updates
       console.log('Saving story with Supabase image URL...');
-      await saveStory(storyID);
+      await saveStory(storyID, updatedImages, supabaseUrl);
     } catch (error) {
       console.error('Error generating/uploading image:', error);
       setIsImageLoading(false);

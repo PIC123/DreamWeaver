@@ -15,6 +15,8 @@ export default function BookView({
   const [jumpToPage, setJumpToPage] = useState('');
   const [customAction, setCustomAction] = useState('');
   const [previousSceneCount, setPreviousSceneCount] = useState(0);
+  const [isImageModalOpen, setImageModalOpen] = useState(false);
+  const [selectedImg, setSelectedImg] = useState('');
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
 
@@ -96,6 +98,11 @@ export default function BookView({
     }
   };
 
+  const toggleImageModal = (imageUrl) => {
+    setSelectedImg(imageUrl);
+    setImageModalOpen(!isImageModalOpen);
+  };
+
   // Swipe gesture detection
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
@@ -166,11 +173,17 @@ export default function BookView({
               {/* Image or Loading Placeholder */}
               <div className="page-image-wrapper-large">
                 {leftScene.image ? (
-                  <img src={leftScene.image} alt="Story scene" className="page-image-large" />
+                  <img
+                    src={leftScene.image}
+                    alt="Story scene"
+                    className="page-image-large"
+                    onClick={() => toggleImageModal(leftScene.image)}
+                    style={{ cursor: 'pointer' }}
+                  />
                 ) : (
                   <div className="page-image-placeholder">
-                    <div className="page-image-placeholder-icon">📖</div>
-                    <div className="page-image-placeholder-text">Weaving your tale...</div>
+                    <div className="page-image-placeholder-icon">✨</div>
+                    <div className="page-image-placeholder-text">Drawing your dream...</div>
                   </div>
                 )}
               </div>
@@ -211,11 +224,17 @@ export default function BookView({
               {/* Image or Loading Placeholder */}
               <div className="page-image-wrapper-large">
                 {rightScene.image ? (
-                  <img src={rightScene.image} alt="Story scene" className="page-image-large" />
+                  <img
+                    src={rightScene.image}
+                    alt="Story scene"
+                    className="page-image-large"
+                    onClick={() => toggleImageModal(rightScene.image)}
+                    style={{ cursor: 'pointer' }}
+                  />
                 ) : (
                   <div className="page-image-placeholder">
-                    <div className="page-image-placeholder-icon">📖</div>
-                    <div className="page-image-placeholder-text">Weaving your tale...</div>
+                    <div className="page-image-placeholder-icon">✨</div>
+                    <div className="page-image-placeholder-text">Drawing your dream...</div>
                   </div>
                 )}
               </div>
@@ -357,6 +376,13 @@ export default function BookView({
       {canGoForward && (
         <div className="corner-nav corner-nav-right" onClick={handleNextSpread}>
           <span>→</span>
+        </div>
+      )}
+
+      {/* Image Modal */}
+      {isImageModalOpen && (
+        <div className="book-image-modal" onClick={() => toggleImageModal('')}>
+          <img src={selectedImg} alt="Enlarged Scene" className="book-enlarged-image" />
         </div>
       )}
     </div>
