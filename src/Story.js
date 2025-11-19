@@ -210,10 +210,8 @@ export default function Story() {
         scrollToBottom();
 
         // Load image (non-blocking)
+        // The story will be saved automatically after the image is uploaded
         getImage(parsed["dall-e-prompt"], new_story_id);
-
-        // Save initial story to Supabase
-        saveStory(new_story_id);
     }
     console.log("storyIdLoaded: " + storyIdLoaded);
     console.log(storyIdLoaded === '');

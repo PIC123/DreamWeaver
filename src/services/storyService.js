@@ -101,7 +101,7 @@ export async function deleteStory(storyId) {
 }
 
 /**
- * Upload an image to Supabase Storage
+ * Upload an image to Supabase Storage via serverless function
  * @param {string} imageUrl - OpenAI image URL to download and upload
  * @param {string} storyId - Story ID
  * @param {number} imageIndex - Image index
@@ -113,44 +113,37 @@ export async function uploadImage(imageUrl, storyId, imageIndex) {
     console.log('Story ID:', storyId);
     console.log('Image Index:', imageIndex);
 
-    // Fetch the image from OpenAI with mode: 'cors'
-    console.log('Fetching image from OpenAI...');
-    const response = await fetch(imageUrl, { mode: 'cors' });
+    // Call the serverless function to handle the upload
+    // This avoids CORS issues since the fetch happens server-side
+    console.log('Calling serverless function to upload image...');
+
+    const response = await fetch('/api/upload-image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        imageUrl,
+        storyId,
+        imageIndex
+      })
+    });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Server error: ${response.status}`);
     }
 
-    const blob = await response.blob();
-    console.log('✅ Image fetched successfully, size:', blob.size, 'bytes');
-    console.log('Blob type:', blob.type);
+    const result = await response.json();
 
-    // Upload to Supabase Storage
-    const fileName = `${storyId}/${imageIndex}.png`;
-    console.log('Uploading to Supabase Storage as:', fileName);
-
-    const { data, error } = await supabase.storage
-      .from('story-images')
-      .upload(fileName, blob, {
-        contentType: 'image/png',
-        upsert: true
-      });
-
-    if (error) {
-      console.error('❌ Supabase upload error:', error);
-      throw error;
+    if (!result.success) {
+      throw new Error(result.error || 'Upload failed');
     }
 
-    console.log('✅ Upload successful, data:', data);
+    console.log('✅ Image uploaded successfully via serverless function');
+    console.log('✅ Public URL:', result.publicUrl);
 
-    // Get the public URL
-    const { data: urlData } = supabase.storage
-      .from('story-images')
-      .getPublicUrl(fileName);
-
-    console.log('✅ Public URL generated:', urlData.publicUrl);
-
-    return { data: urlData.publicUrl, error: null };
+    return { data: result.publicUrl, error: null };
   } catch (error) {
     console.error('❌ Error uploading image to Supabase:', error);
     console.error('Error details:', {
