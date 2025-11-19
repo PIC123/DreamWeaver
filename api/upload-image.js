@@ -31,9 +31,9 @@ export default async function handler(req, res) {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { imageUrl, storyId, imageIndex } = req.body;
+    const { imageBase64, storyId, imageIndex } = req.body;
 
-    if (!imageUrl || !storyId || imageIndex === undefined) {
+    if (!imageBase64 || !storyId || imageIndex === undefined) {
       return res.status(400).json({
         success: false,
         error: 'Missing required parameters'
@@ -41,27 +41,13 @@ export default async function handler(req, res) {
     }
 
     console.log('🖼️ Serverless function: Starting image upload...');
-    console.log('Image URL:', imageUrl);
     console.log('Story ID:', storyId);
     console.log('Image Index:', imageIndex);
+    console.log('Base64 length:', imageBase64.length);
 
-    // Fetch the image from OpenAI (server-side, no CORS issues)
-    console.log('Fetching image from OpenAI...');
-    const response = await fetch(imageUrl);
-
-    if (!response.ok) {
-      const errorMsg = `Failed to fetch image: ${response.status} ${response.statusText}`;
-      console.error('❌', errorMsg);
-      return res.status(500).json({
-        success: false,
-        error: errorMsg
-      });
-    }
-
-    // Convert to buffer
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    console.log('✅ Image fetched successfully, size:', buffer.length, 'bytes');
+    // Convert base64 to buffer
+    const buffer = Buffer.from(imageBase64, 'base64');
+    console.log('✅ Buffer created, size:', buffer.length, 'bytes');
 
     // Upload to Supabase Storage
     const fileName = `${storyId}/${imageIndex}.png`;

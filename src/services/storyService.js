@@ -113,25 +113,48 @@ export async function uploadImage(imageUrl, storyId, imageIndex) {
     console.log('Story ID:', storyId);
     console.log('Image Index:', imageIndex);
 
-    // Call the serverless function to handle the upload
-    // This avoids CORS issues since the fetch happens server-side
-    console.log('Calling serverless function to upload image...');
+    // Fetch the image in the frontend while the URL is still valid
+    // This happens before CORS restrictions kick in
+    console.log('Fetching image from OpenAI (frontend)...');
+    const imageResponse = await fetch(imageUrl);
 
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to fetch image: ${imageResponse.status}`);
+    }
+
+    // Convert to blob
+    const blob = await imageResponse.blob();
+    console.log('✅ Image fetched, size:', blob.size, 'bytes');
+
+    // Convert blob to base64
+    console.log('Converting to base64...');
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result.split(',')[1]); // Remove data:image/png;base64, prefix
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+
+    console.log('✅ Converted to base64, length:', base64.length);
+
+    // Send base64 data to serverless function for upload
+    console.log('Calling serverless function to upload image...');
     const response = await fetch('/api/upload-image', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        imageUrl,
+        imageBase64: base64,
         storyId,
         imageIndex
       })
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Server error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Server response:', errorText);
+      throw new Error(`Server error: ${response.status} - ${errorText}`);
     }
 
     const result = await response.json();
