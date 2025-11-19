@@ -108,12 +108,27 @@ export async function deleteStory(storyId) {
  */
 export async function uploadImage(imageUrl, storyId, imageIndex) {
   try {
-    // Fetch the image from OpenAI
-    const response = await fetch(imageUrl);
+    console.log('🖼️ Starting image upload to Supabase...');
+    console.log('Image URL:', imageUrl);
+    console.log('Story ID:', storyId);
+    console.log('Image Index:', imageIndex);
+
+    // Fetch the image from OpenAI with mode: 'cors'
+    console.log('Fetching image from OpenAI...');
+    const response = await fetch(imageUrl, { mode: 'cors' });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+    }
+
     const blob = await response.blob();
+    console.log('✅ Image fetched successfully, size:', blob.size, 'bytes');
+    console.log('Blob type:', blob.type);
 
     // Upload to Supabase Storage
     const fileName = `${storyId}/${imageIndex}.png`;
+    console.log('Uploading to Supabase Storage as:', fileName);
+
     const { data, error } = await supabase.storage
       .from('story-images')
       .upload(fileName, blob, {
@@ -121,16 +136,28 @@ export async function uploadImage(imageUrl, storyId, imageIndex) {
         upsert: true
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Supabase upload error:', error);
+      throw error;
+    }
+
+    console.log('✅ Upload successful, data:', data);
 
     // Get the public URL
     const { data: urlData } = supabase.storage
       .from('story-images')
       .getPublicUrl(fileName);
 
+    console.log('✅ Public URL generated:', urlData.publicUrl);
+
     return { data: urlData.publicUrl, error: null };
   } catch (error) {
-    console.error('Error uploading image:', error);
+    console.error('❌ Error uploading image to Supabase:', error);
+    console.error('Error details:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
     return { data: null, error };
   }
 }
