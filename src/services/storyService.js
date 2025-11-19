@@ -113,39 +113,16 @@ export async function uploadImage(imageUrl, storyId, imageIndex) {
     console.log('Story ID:', storyId);
     console.log('Image Index:', imageIndex);
 
-    // Fetch the image in the frontend while the URL is still valid
-    // This happens before CORS restrictions kick in
-    console.log('Fetching image from OpenAI (frontend)...');
-    const imageResponse = await fetch(imageUrl);
-
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to fetch image: ${imageResponse.status}`);
-    }
-
-    // Convert to blob
-    const blob = await imageResponse.blob();
-    console.log('✅ Image fetched, size:', blob.size, 'bytes');
-
-    // Convert blob to base64
-    console.log('Converting to base64...');
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result.split(',')[1]); // Remove data:image/png;base64, prefix
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-
-    console.log('✅ Converted to base64, length:', base64.length);
-
-    // Send base64 data to serverless function for upload
-    console.log('Calling serverless function to upload image...');
+    // Send image URL to serverless function to fetch and upload
+    // The serverless function handles the fetch to avoid CORS issues
+    console.log('Calling serverless function to fetch and upload image...');
     const response = await fetch('/api/upload-image', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        imageBase64: base64,
+        imageUrl,
         storyId,
         imageIndex
       })
@@ -153,7 +130,7 @@ export async function uploadImage(imageUrl, storyId, imageIndex) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Server response:', errorText);
+      console.error('❌ Server response:', errorText);
       throw new Error(`Server error: ${response.status} - ${errorText}`);
     }
 
