@@ -1,22 +1,43 @@
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.REACT_APP_SUPABASE_URL,
-  process.env.REACT_APP_SUPABASE_ANON_KEY
-);
+const { createClient } = require('@supabase/supabase-js');
 
 export default async function handler(req, res) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Handle preflight request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
+    // Initialize Supabase client (inside handler to ensure fresh credentials)
+    const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+    const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('❌ Missing Supabase credentials');
+      return res.status(500).json({
+        success: false,
+        error: 'Server configuration error: Missing Supabase credentials'
+      });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const { imageUrl, storyId, imageIndex } = req.body;
 
     if (!imageUrl || !storyId || imageIndex === undefined) {
-      return res.status(400).json({ error: 'Missing required parameters' });
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required parameters'
+      });
     }
 
     console.log('🖼️ Serverless function: Starting image upload...');
@@ -29,7 +50,12 @@ export default async function handler(req, res) {
     const response = await fetch(imageUrl);
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+      const errorMsg = `Failed to fetch image: ${response.status} ${response.statusText}`;
+      console.error('❌', errorMsg);
+      return res.status(500).json({
+        success: false,
+        error: errorMsg
+      });
     }
 
     // Convert to buffer
@@ -50,7 +76,10 @@ export default async function handler(req, res) {
 
     if (error) {
       console.error('❌ Supabase upload error:', error);
-      throw error;
+      return res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to upload to Supabase'
+      });
     }
 
     console.log('✅ Upload successful, data:', data);
@@ -70,7 +99,7 @@ export default async function handler(req, res) {
     console.error('❌ Error in upload-image function:', error);
     return res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message || 'Internal server error'
     });
   }
 }

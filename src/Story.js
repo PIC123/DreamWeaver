@@ -245,7 +245,10 @@ export default function Story() {
 
   useEffect(() => {
     scrollToEnd(); // Scroll to bottom when messages state changes
-    saveStory(storyId);
+    // Only save if storyId is defined (not on initial render)
+    if (storyId) {
+      saveStory(storyId);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storyImages]);
   
