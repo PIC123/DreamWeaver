@@ -185,43 +185,6 @@ export default function BookView({
     );
   };
 
-  // Render actions page (last page)
-  const renderActionsPage = () => {
-    return (
-      <div key="actions" className="turn-page page">
-        <div className="book-last-page">
-          <h3 className="last-page-title">What happens next?</h3>
-
-          {possibleActions && possibleActions.length > 0 && (
-            <div className="book-actions-grid">
-              {possibleActions.map((action, index) => (
-                <button
-                  key={index}
-                  onClick={() => onActionClick(action)}
-                  className="book-action-button"
-                >
-                  {action}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <form onSubmit={handleCustomAction} className="custom-action-form">
-            <input
-              type="text"
-              value={customAction}
-              onChange={(e) => setCustomAction(e.target.value)}
-              placeholder="Or type your own action..."
-              className="custom-action-input"
-            />
-            <button type="submit" className="custom-action-submit">
-              Continue Story
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="book-view-container">
@@ -233,7 +196,6 @@ export default function BookView({
         <div ref={bookRef} id="book" className="book">
           {renderCoverPage()}
           {scenes.map((scene, index) => renderPage(scene, index))}
-          {renderActionsPage()}
         </div>
       </div>
 
@@ -256,6 +218,38 @@ export default function BookView({
         >
           Next →
         </button>
+      </div>
+
+      {/* Story Actions - Below navigation */}
+      <div className="book-actions-container">
+        <h3 className="actions-title">What happens next?</h3>
+
+        {possibleActions && possibleActions.length > 0 && (
+          <div className="book-actions-grid">
+            {possibleActions.map((action, index) => (
+              <button
+                key={index}
+                onClick={() => onActionClick(action)}
+                className="book-action-button"
+              >
+                {action}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <form onSubmit={handleCustomAction} className="custom-action-form">
+          <input
+            type="text"
+            value={customAction}
+            onChange={(e) => setCustomAction(e.target.value)}
+            placeholder="Or type your own action..."
+            className="custom-action-input"
+          />
+          <button type="submit" className="custom-action-submit">
+            Continue Story
+          </button>
+        </form>
       </div>
 
       {/* Image Modal */}
