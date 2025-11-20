@@ -15,7 +15,7 @@ export default function BookView({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
 
-  // Convert messages to scenes - first scene is the cover with story setting
+  // Convert messages to scenes
   const scenes = messages
     .map((message, index) => {
       if (message.sender === 'system') {
@@ -40,6 +40,9 @@ export default function BookView({
     })
     .filter(scene => scene !== null);
 
+  // Get the initial story setting for the cover
+  const initialSetting = scenes.length > 0 ? scenes[0].text : '';
+
   const handleCustomAction = (e) => {
     e.preventDefault();
     if (customAction.trim()) {
@@ -53,38 +56,30 @@ export default function BookView({
     setImageModalOpen(!isImageModalOpen);
   };
 
-  // Initialize turn.js
+  // Initialize turn.js only once
   useEffect(() => {
     if (bookRef.current && window.$ && scenes.length > 0) {
       const $book = window.$(bookRef.current);
 
-      // Destroy existing instance if it exists
+      // Only initialize if not already initialized
       try {
-        $book.turn('destroy');
+        $book.turn('pages'); // Check if already initialized
       } catch (e) {
-        // Not initialized yet, that's fine
-      }
-
-      // Initialize turn.js
-      $book.turn({
-        display: 'double',
-        acceleration: true,
-        gradients: true,
-        duration: 600,
-        when: {
-          turned: function(_e, page) {
-            setCurrentPage(page);
+        // Not initialized, so initialize now
+        $book.turn({
+          display: 'double',
+          acceleration: true,
+          gradients: true,
+          duration: 600,
+          when: {
+            turned: function(_e, page) {
+              setCurrentPage(page);
+            }
           }
-        }
-      });
+        });
 
-      setTotalPages($book.turn('pages'));
-
-      // Jump to last page when new content arrives
-      setTimeout(() => {
-        const lastPage = $book.turn('pages');
-        $book.turn('page', lastPage);
-      }, 100);
+        setTotalPages($book.turn('pages'));
+      }
 
       return () => {
         try {
@@ -93,6 +88,24 @@ export default function BookView({
           // Already destroyed, that's fine
         }
       };
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
+
+  // Update to last page when scenes change
+  useEffect(() => {
+    if (bookRef.current && window.$ && scenes.length > 0) {
+      const $book = window.$(bookRef.current);
+      try {
+        // Jump to last page when new content arrives
+        setTimeout(() => {
+          const lastPage = $book.turn('pages');
+          $book.turn('page', lastPage);
+          setTotalPages(lastPage);
+        }, 100);
+      } catch (e) {
+        // turn.js not initialized yet
+      }
     }
   }, [scenes.length]);
 
@@ -126,22 +139,21 @@ export default function BookView({
     }
   };
 
-  // Render a single page
-  const renderPage = (scene, index) => {
-    // First page - story setting as cover
-    if (scene.isFirst) {
-      return (
-        <div key={index} className="turn-page page page-cover">
-          <div className="book-cover">
-            <div className="book-cover-ornament">✨</div>
-            <div className="book-cover-title">Your Story Begins</div>
-            <div className="book-cover-story-setting">{scene.text}</div>
-          </div>
+  // Render cover page
+  const renderCoverPage = () => {
+    return (
+      <div key="cover" className="turn-page page page-cover">
+        <div className="book-cover">
+          <div className="book-cover-ornament">✨</div>
+          <div className="book-cover-title">Dream Weaver</div>
+          <div className="book-cover-subtitle">An Interactive Storybook</div>
         </div>
-      );
-    }
+      </div>
+    );
+  };
 
-    // Regular story page
+  // Render a single scene page
+  const renderPage = (scene, index) => {
     return (
       <div key={index} className="turn-page page">
         <div className="page-image-wrapper">
@@ -219,6 +231,7 @@ export default function BookView({
 
       <div className="book-wrapper">
         <div ref={bookRef} id="book" className="book">
+          {renderCoverPage()}
           {scenes.map((scene, index) => renderPage(scene, index))}
           {renderActionsPage()}
         </div>
