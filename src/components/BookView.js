@@ -1,6 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
-import $ from 'jquery';
-import 'turn.js';
+import React, { useState, useEffect } from 'react';
 import './BookView.css';
 
 export default function BookView({
@@ -10,13 +8,13 @@ export default function BookView({
   onActionClick,
   onClose
 }) {
+  const [currentSpread, setCurrentSpread] = useState(0);
   const [customAction, setCustomAction] = useState('');
   const [previousSceneCount, setPreviousSceneCount] = useState(0);
   const [isImageModalOpen, setImageModalOpen] = useState(false);
   const [selectedImg, setSelectedImg] = useState('');
-  const [currentPage, setCurrentPage] = useState(0);
-  const bookRef = useRef(null);
-  const turnInitialized = useRef(false);
+  const [isFlipping, setIsFlipping] = useState(false);
+  const [flipDirection, setFlipDirection] = useState('forward');
 
   // Convert messages to scenes
   const scenes = messages
@@ -42,6 +40,39 @@ export default function BookView({
     })
     .filter(scene => scene !== null);
 
+  const totalScenes = scenes.length;
+  const totalSpreads = Math.ceil((totalScenes + 1) / 2); // +1 for actions page
+
+  // Calculate which scenes are visible on current spread
+  const leftSceneIndex = currentSpread * 2 - 1; // -1 because first page is cover
+  const rightSceneIndex = currentSpread * 2;
+
+  const leftScene = leftSceneIndex >= 0 ? scenes[leftSceneIndex] : null;
+  const rightScene = scenes[rightSceneIndex] || null;
+
+  const canGoBack = currentSpread > 0;
+  const canGoForward = currentSpread < totalSpreads - 1;
+
+  const handleNextSpread = () => {
+    if (!canGoForward || isFlipping) return;
+    setFlipDirection('forward');
+    setIsFlipping(true);
+    setTimeout(() => {
+      setCurrentSpread(prev => prev + 1);
+      setIsFlipping(false);
+    }, 600);
+  };
+
+  const handlePrevSpread = () => {
+    if (!canGoBack || isFlipping) return;
+    setFlipDirection('backward');
+    setIsFlipping(true);
+    setTimeout(() => {
+      setCurrentSpread(prev => prev - 1);
+      setIsFlipping(false);
+    }, 600);
+  };
+
   const handleCustomAction = (e) => {
     e.preventDefault();
     if (customAction.trim()) {
@@ -55,179 +86,139 @@ export default function BookView({
     setImageModalOpen(!isImageModalOpen);
   };
 
-  // Initialize turn.js
+  // Jump to last spread when new content arrives
   useEffect(() => {
-    if (bookRef.current && !turnInitialized.current && scenes.length > 0) {
-      const $book = $(bookRef.current);
-
-      $book.turn({
-        width: 1400,
-        height: 700,
-        autoCenter: true,
-        gradients: true,
-        acceleration: true,
-        elevation: 50,
-        display: 'double',
-        when: {
-          turned: function(_event, page) {
-            setCurrentPage(page);
-          }
-        }
-      });
-
-      turnInitialized.current = true;
-    }
-
-    return () => {
-      if (turnInitialized.current && bookRef.current) {
-        try {
-          $(bookRef.current).turn('destroy');
-          turnInitialized.current = false;
-        } catch (e) {
-          // Ignore cleanup errors
-        }
-      }
-    };
-  }, [scenes.length]);
-
-  // Jump to last page when new content arrives
-  useEffect(() => {
-    if (scenes.length > previousSceneCount && turnInitialized.current && bookRef.current) {
+    if (scenes.length > previousSceneCount) {
       setPreviousSceneCount(scenes.length);
-      const $book = $(bookRef.current);
-      setTimeout(() => {
-        $book.turn('page', scenes.length + 1); // +1 for cover
-      }, 100);
+      const lastSpread = Math.ceil((scenes.length + 1) / 2) - 1;
+      setCurrentSpread(lastSpread);
     }
   }, [scenes.length, previousSceneCount]);
 
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (!turnInitialized.current || !bookRef.current) return;
-
-      const $book = $(bookRef.current);
-      if (e.key === 'ArrowLeft') $book.turn('previous');
-      if (e.key === 'ArrowRight') $book.turn('next');
+      if (e.key === 'ArrowLeft') handlePrevSpread();
+      if (e.key === 'ArrowRight') handleNextSpread();
       if (e.key === 'Escape') onClose();
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSpread, isFlipping]);
 
-  const nextPage = () => {
-    if (bookRef.current) {
-      $(bookRef.current).turn('next');
+  // Render a single page
+  const renderPage = (scene, isLeft, pageNum) => {
+    if (!scene && currentSpread === 0 && isLeft) {
+      // Cover page
+      return (
+        <div className="book-cover">
+          <div className="book-cover-title">Dream Weaver</div>
+          <div className="book-cover-subtitle">An Interactive Storybook</div>
+          <div className="book-cover-ornament">✨</div>
+        </div>
+      );
     }
-  };
 
-  const prevPage = () => {
-    if (bookRef.current) {
-      $(bookRef.current).turn('previous');
+    if (!scene && currentSpread === totalSpreads - 1 && !isLeft) {
+      // Actions page
+      return (
+        <div className="book-last-page">
+          <h3 className="last-page-title">What happens next?</h3>
+
+          {possibleActions && possibleActions.length > 0 && (
+            <div className="book-actions-grid">
+              {possibleActions.map((action, index) => (
+                <button
+                  key={index}
+                  onClick={() => onActionClick(action)}
+                  className="book-action-button"
+                >
+                  {action}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <form onSubmit={handleCustomAction} className="custom-action-form">
+            <input
+              type="text"
+              value={customAction}
+              onChange={(e) => setCustomAction(e.target.value)}
+              placeholder="Or type your own action..."
+              className="custom-action-input"
+            />
+            <button type="submit" className="custom-action-submit">
+              Continue Story
+            </button>
+          </form>
+        </div>
+      );
     }
+
+    if (!scene) {
+      return <div className="page-empty"></div>;
+    }
+
+    // Regular story page
+    return (
+      <>
+        <div className="page-image-wrapper-large">
+          {scene.image ? (
+            <img
+              src={scene.image}
+              alt="Story scene"
+              className="page-image-large"
+              onClick={() => toggleImageModal(scene.image)}
+              style={{ cursor: 'pointer' }}
+            />
+          ) : (
+            <div className="page-image-placeholder">
+              <div className="page-image-placeholder-icon">✨</div>
+              <div className="page-image-placeholder-text">Drawing your dream...</div>
+            </div>
+          )}
+        </div>
+
+        <div className="page-text-content">
+          {scene.text ? (
+            <>
+              {scene.action && (
+                <div className="page-story-action">{scene.action}</div>
+              )}
+              <div className="page-story-text">{scene.text}</div>
+            </>
+          ) : (
+            <div className="page-text-placeholder">
+              The story unfolds as ink meets parchment...
+            </div>
+          )}
+        </div>
+
+        <div className="page-number">{pageNum}</div>
+      </>
+    );
   };
 
   return (
     <div className="book-view-container">
-      {/* Close button */}
       <button className="book-close-button" onClick={onClose}>
         ✕ Exit Book View
       </button>
 
-      {/* Turn.js Book */}
-      <div className="turn-book-wrapper">
-        <div ref={bookRef} id="flipbook" className="turn-book">
-          {/* Cover Page */}
-          <div className="turn-page">
-            <div className="book-cover">
-              <div className="book-cover-title">Dream Weaver</div>
-              <div className="book-cover-subtitle">An Interactive Storybook</div>
-              <div className="book-cover-ornament">✨</div>
-            </div>
-          </div>
+      <div className={`book ${isFlipping ? `flipping-${flipDirection}` : ''}`}>
+        {/* Left Page */}
+        <div className="page page-left">
+          {renderPage(leftScene, true, leftSceneIndex >= 0 ? leftSceneIndex + 1 : null)}
+        </div>
 
-          {/* Story Pages */}
-          {scenes.map((scene, index) => (
-            <div key={index} className="turn-page">
-              <div className="page page-single">
-                {/* Image */}
-                <div className="page-image-wrapper-large">
-                  {scene.image ? (
-                    <img
-                      src={scene.image}
-                      alt="Story scene"
-                      className="page-image-large"
-                      onClick={() => toggleImageModal(scene.image)}
-                      style={{ cursor: 'pointer' }}
-                    />
-                  ) : (
-                    <div className="page-image-placeholder">
-                      <div className="page-image-placeholder-icon">✨</div>
-                      <div className="page-image-placeholder-text">Drawing your dream...</div>
-                    </div>
-                  )}
-                </div>
+        {/* Book Spine */}
+        <div className="book-spine"></div>
 
-                {/* Story Text with Action */}
-                <div className="page-text-content">
-                  {scene.text ? (
-                    <>
-                      {scene.action && (
-                        <div className="page-story-action">{scene.action}</div>
-                      )}
-                      <div className="page-story-text">{scene.text}</div>
-                    </>
-                  ) : (
-                    <div className="page-text-placeholder">
-                      The story unfolds as ink meets parchment...
-                    </div>
-                  )}
-                </div>
-
-                {/* Page Number */}
-                <div className="page-number">{index + 1}</div>
-              </div>
-            </div>
-          ))}
-
-          {/* Last Page - Actions */}
-          <div className="turn-page">
-            <div className="page page-single">
-              <div className="book-last-page">
-                <h3 className="last-page-title">What happens next?</h3>
-
-                {/* Predefined actions */}
-                {possibleActions && possibleActions.length > 0 && (
-                  <div className="book-actions-grid">
-                    {possibleActions.map((action, index) => (
-                      <button
-                        key={index}
-                        onClick={() => onActionClick(action)}
-                        className="book-action-button"
-                      >
-                        {action}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Custom action input */}
-                <form onSubmit={handleCustomAction} className="custom-action-form">
-                  <input
-                    type="text"
-                    value={customAction}
-                    onChange={(e) => setCustomAction(e.target.value)}
-                    placeholder="Or type your own action..."
-                    className="custom-action-input"
-                  />
-                  <button type="submit" className="custom-action-submit">
-                    Continue Story
-                  </button>
-                </form>
-              </div>
-            </div>
-          </div>
+        {/* Right Page */}
+        <div className="page page-right">
+          {renderPage(rightScene, false, rightSceneIndex < totalScenes ? rightSceneIndex + 1 : null)}
         </div>
       </div>
 
@@ -235,22 +226,36 @@ export default function BookView({
       <div className="book-nav-controls">
         <button
           className="nav-button nav-prev"
-          onClick={prevPage}
+          onClick={handlePrevSpread}
+          disabled={!canGoBack || isFlipping}
         >
           ← Previous
         </button>
 
         <div className="page-indicator">
-          Page {currentPage} of {scenes.length + 2}
+          Spread {currentSpread + 1} of {totalSpreads}
         </div>
 
         <button
           className="nav-button nav-next"
-          onClick={nextPage}
+          onClick={handleNextSpread}
+          disabled={!canGoForward || isFlipping}
         >
           Next →
         </button>
       </div>
+
+      {/* Corner navigation hints */}
+      {canGoBack && (
+        <div className="corner-nav corner-nav-left" onClick={handlePrevSpread}>
+          <span>←</span>
+        </div>
+      )}
+      {canGoForward && (
+        <div className="corner-nav corner-nav-right" onClick={handleNextSpread}>
+          <span>→</span>
+        </div>
+      )}
 
       {/* Image Modal */}
       {isImageModalOpen && (
