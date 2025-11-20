@@ -59,8 +59,10 @@ export default function BookView({
       const $book = window.$(bookRef.current);
 
       // Destroy existing instance if it exists
-      if ($book.turn('is')) {
+      try {
         $book.turn('destroy');
+      } catch (e) {
+        // Not initialized yet, that's fine
       }
 
       // Initialize turn.js
@@ -85,8 +87,10 @@ export default function BookView({
       }, 100);
 
       return () => {
-        if ($book.turn('is')) {
+        try {
           $book.turn('destroy');
+        } catch (e) {
+          // Already destroyed, that's fine
         }
       };
     }
