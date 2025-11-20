@@ -9,7 +9,9 @@
       "Bash(vercel inspect:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(vercel ls:*)"
+      "Bash(vercel ls:*)",
+      "Bash(git push:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": []
