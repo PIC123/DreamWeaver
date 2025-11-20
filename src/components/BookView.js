@@ -70,7 +70,7 @@ export default function BookView({
         gradients: true,
         duration: 600,
         when: {
-          turned: function(e, page) {
+          turned: function(_e, page) {
             setCurrentPage(page);
           }
         }
