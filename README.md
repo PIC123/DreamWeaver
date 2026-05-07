@@ -1,70 +1,84 @@
-# Getting Started with Create React App
+# DreamWeaver
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+An interactive AI storybook. Players describe a setting; GPT narrates a Zork-style
+adventure and DALL-E illustrates each scene. Built on Next.js 15 + Supabase.
 
-## Available Scripts
+## Stack
 
-In the project directory, you can run:
+- **Next.js 15** (App Router, TypeScript)
+- **Supabase** for auth + Postgres + Storage
+- **OpenAI** for chat + image generation, called server-side only
+- **turn.js** for the realistic page-flip BookView
+- Deployed on **Vercel**
 
-### `npm start`
+## Local development
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```bash
+cp .env.example .env.local        # then fill in your keys
+npm install
+npm run dev                       # http://localhost:3000
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Environment variables
 
-### `npm test`
+See [`VERCEL_SETUP.md`](./VERCEL_SETUP.md) for the full list. In summary:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- Public: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- Server-only: `OPENAI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 
-### `npm run build`
+## First-time Supabase setup
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Open the SQL Editor in your Supabase project and run
+[`supabase/migrations/001_initial.sql`](./supabase/migrations/001_initial.sql).
+That creates the schema, RLS, and Storage policies. Then create a public Storage
+bucket named `story-images`.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+See [`SUPABASE_SETUP.md`](./SUPABASE_SETUP.md) and
+[`STORAGE_TROUBLESHOOTING.md`](./STORAGE_TROUBLESHOOTING.md) for deeper details.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Project layout
 
-### `npm run eject`
+```
+app/                   Next.js App Router
+  api/
+    chat/              POST /api/chat   — server-side OpenAI chat
+    image/             POST /api/image  — server-side DALL-E
+    random-setting/    POST /api/random-setting
+    stories/[id]/      DELETE /api/stories/[id] — cascade delete (row + images)
+    upload-image/      POST /api/upload-image   — fetch OpenAI image, upload to Supabase
+  page.tsx             Landing
+  story/[storyId]/     Story page (URL-routable now)
+  dashboard/           User dashboard
+components/
+  auth/                AuthProvider, AuthModal
+  story/               Story sub-components + BookView
+  ui/                  ErrorBoundary, etc.
+hooks/
+  useStoryEngine.ts    Single source of truth for story state
+lib/
+  api.ts               Client-side helpers that call /api/*
+  env.ts               Centralised env access (with REACT_APP_ fallback)
+  openai.ts            Server-only OpenAI client
+  prompt.ts            System prompt + JSON schema for structured outputs
+  storyId.ts           crypto.randomUUID() helpers
+  storyService.ts      Supabase client-side reads/writes
+  supabase/
+    client.ts          Browser Supabase client
+    server.ts          Server Supabase clients (anon + service_role)
+  anonStore.ts         localStorage of anon-owner tokens
+types/
+  story.ts             Shared TypeScript types
+supabase/
+  migrations/          SQL migrations
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Available scripts
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+| Script | Description |
+| --- | --- |
+| `npm run dev` | Start the local dev server |
+| `npm run build` | Production build |
+| `npm run start` | Run the production build |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run format` | Prettier write |
