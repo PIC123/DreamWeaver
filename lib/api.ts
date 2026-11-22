@@ -9,6 +9,7 @@ import {
   type SceneRow,
   type StoryRow,
 } from '@/lib/story/rows';
+import type { StoryBible } from '@/lib/story/bible';
 import type { Scene, Story, TurnEvent } from '@/lib/story/types';
 
 /** A failed API call. `message` is written for the person using the app. */
@@ -79,7 +80,7 @@ export async function takeTurn(
   storyId: string,
   input: { action: string | null; expectedPosition: number },
   onDelta: (text: string) => void,
-): Promise<Scene> {
+): Promise<{ scene: Scene; bible: StoryBible }> {
   const res = await authedFetch(`/api/stories/${storyId}/turns`, {
     method: 'POST',
     body: JSON.stringify(input),
@@ -89,13 +90,13 @@ export async function takeTurn(
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
-  let scene: Scene | null = null;
+  let result: { scene: Scene; bible: StoryBible } | null = null;
 
   const handle = (line: string) => {
     if (!line.trim()) return;
     const event = JSON.parse(line) as TurnEvent;
     if (event.type === 'delta') onDelta(event.text);
-    else if (event.type === 'scene') scene = event.scene;
+    else if (event.type === 'scene') result = { scene: event.scene, bible: event.bible };
     else throw new ApiError(event.message.includes('moved on') ? 409 : 502, event.message);
   };
 
@@ -111,8 +112,8 @@ export async function takeTurn(
   }
   handle(buffer);
 
-  if (!scene) throw new ApiError(502, 'The storyteller stopped mid-sentence. Please try again.');
-  return scene;
+  if (!result) throw new ApiError(502, 'The storyteller stopped mid-sentence. Please try again.');
+  return result;
 }
 
 // ── reads (straight from Supabase; row level security decides what is visible) ──

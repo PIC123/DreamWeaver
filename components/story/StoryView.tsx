@@ -7,6 +7,7 @@ import AuthModal from '@/components/auth/AuthModal';
 import type { useStory } from '@/hooks/useStory';
 import ActionInput from './ActionInput';
 import BookView from './BookView';
+import Journal from './Journal';
 import SceneArt from './SceneArt';
 import ShareControl from './ShareControl';
 import styles from './story.module.css';
@@ -17,6 +18,7 @@ type Props = { story: ReturnType<typeof useStory> };
 export default function StoryView({ story: s }: Props) {
   const { isGuest } = useAuth();
   const [bookOpen, setBookOpen] = useState(false);
+  const [journalOpen, setJournalOpen] = useState(false);
   const [signUpOpen, setSignUpOpen] = useState(false);
   const [pickedSceneId, setPickedSceneId] = useState<string | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
@@ -111,6 +113,9 @@ export default function StoryView({ story: s }: Props) {
               💾 Keep my stories
             </button>
           )}
+          <button type="button" className={styles.ghostButton} onClick={() => setJournalOpen(true)}>
+            📔 Journal
+          </button>
           <ShareControl isPublic={story.isPublic} onChange={s.setSharing} />
           <button
             type="button"
@@ -152,6 +157,19 @@ export default function StoryView({ story: s }: Props) {
                 </button>
               ))}
             </div>
+          )}
+          {story.bible.items.length > 0 && (
+            <ul className={styles.inventory} aria-label="Carrying">
+              {story.bible.items.map((item) => (
+                <li
+                  key={item.name}
+                  className={s.newItems.includes(item.name) ? styles.inventoryNew : undefined}
+                  title={item.description || undefined}
+                >
+                  🎒 {item.name}
+                </li>
+              ))}
+            </ul>
           )}
         </section>
 
@@ -205,6 +223,8 @@ export default function StoryView({ story: s }: Props) {
           </BookView>
         </div>
       )}
+
+      {journalOpen && <Journal bible={story.bible} onClose={() => setJournalOpen(false)} />}
 
       {signUpOpen && <AuthModal mode="signup" onClose={() => setSignUpOpen(false)} />}
     </div>

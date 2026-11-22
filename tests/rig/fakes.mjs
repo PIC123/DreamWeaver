@@ -371,16 +371,49 @@ export function startOpenAI({ port }) {
         const sceneNumber = body.messages.filter((m) => m.role === 'assistant').length + 1;
         const isOpening = lastUser.startsWith('Begin the story');
         // Quotes, a newline and an emoji exercise the streaming JSON reader.
+        // The bible updates let tests check consistency: the opening introduces a
+        // cast, "Look around" finds a key, "Wait quietly" loses it, and every later
+        // turn tries (and must fail) to change how the main character looks.
         const turn = JSON.stringify({
           narration: isOpening
-            ? `Scene ${sceneNumber}: the adventure begins. A sign reads "Welcome, traveller" ✨\nThe path forks ahead.`
-            : `Scene ${sceneNumber}: you chose to ${lastUser}. The story "continues" ✨\nSomething stirs nearby.`,
+            ? `Scene ${sceneNumber}: the adventure begins. A sign reads "Welcome, traveller" \u2728\nThe path forks ahead.`
+            : `Scene ${sceneNumber}: you chose to ${lastUser}. The story "continues" \u2728\nSomething stirs nearby.`,
           choices: [
             `Go north (${sceneNumber})`,
             `Look around (${sceneNumber})`,
             `Wait quietly (${sceneNumber})`,
           ],
           imagePrompt: `Illustration of scene ${sceneNumber}: ${lastUser}`,
+          featuring: isOpening ? ['You', 'The Lighthouse'] : ['You', 'Old Gull'],
+          summary: `Summary after scene ${sceneNumber}.`,
+          newCharacters: isOpening
+            ? [
+                {
+                  name: 'You',
+                  role: 'the traveller',
+                  appearance: 'a small traveller in a yellow raincoat and red scarf',
+                },
+                {
+                  name: 'Old Gull',
+                  role: 'lighthouse keeper',
+                  appearance: 'a grey gull wearing a tiny blue cap',
+                },
+              ]
+            : [
+                {
+                  name: 'you',
+                  role: 'the traveller',
+                  appearance: 'a tall wizard in a purple cloak',
+                },
+              ],
+          newPlaces: isOpening
+            ? [{ name: 'The Lighthouse', appearance: 'a white tower with a green door' }]
+            : [],
+          itemsGained: lastUser.includes('Look around')
+            ? [{ name: 'Brass key', description: 'small and cold' }]
+            : [],
+          itemsLost: lastUser.includes('Wait quietly') ? ['brass key'] : [],
+          threads: [`Find the lamp (${sceneNumber})`],
         });
 
         res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store' });

@@ -1,8 +1,10 @@
+import { normalizeBible } from './bible';
 import { LIMITS, type Scene, type Story } from './types';
 
 // Database row shapes and their mapping to app types, shared by browser and server.
 
-export const STORY_COLUMNS = 'id, user_id, setting, cover_url, scene_count, is_public, updated_at';
+export const STORY_COLUMNS =
+  'id, user_id, setting, cover_url, scene_count, is_public, updated_at, bible';
 export const SCENE_COLUMNS =
   'id, story_id, position, action, narration, choices, image_prompt, image_url, image_attempts';
 
@@ -14,6 +16,7 @@ export type StoryRow = {
   scene_count: number;
   is_public: boolean;
   updated_at: string;
+  bible: unknown;
 };
 
 export type SceneRow = {
@@ -37,6 +40,7 @@ export function toStory(row: StoryRow): Story {
     sceneCount: row.scene_count,
     isPublic: row.is_public,
     updatedAt: row.updated_at,
+    bible: normalizeBible(row.bible),
   };
 }
 

@@ -18,6 +18,7 @@ create table if not exists public.stories (
   cover_url text,
   scene_count integer not null default 0,
   is_public boolean not null default false,
+  bible jsonb not null default '{}'::jsonb,
   legacy_id text unique,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -42,6 +43,8 @@ alter table public.stories alter column legacy_id drop not null;
 alter table public.stories add column if not exists cover_url text;
 alter table public.stories add column if not exists scene_count integer not null default 0;
 alter table public.stories add column if not exists is_public boolean not null default false;
+-- The story bible: established characters, places, carried items and a running summary.
+alter table public.stories add column if not exists bible jsonb not null default '{}'::jsonb;
 -- A shared secret from an earlier design; it was readable by anyone, so remove it.
 alter table public.stories drop column if exists anon_token;
 

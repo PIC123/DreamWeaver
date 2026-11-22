@@ -132,3 +132,53 @@ test('the previous picture stays, glowing, until the next one materialises over 
   // The old picture remains underneath while the new one appears over it.
   await expect(art.locator('img[aria-hidden="true"]')).toHaveCount(1);
 });
+
+test('the story keeps a journal, an inventory and consistent character looks', async ({
+  page,
+  request,
+}) => {
+  const setting = `A windswept cape ${Date.now()}`;
+  await startStory(page, setting);
+
+  await page.getByRole('button', { name: /Journal/ }).click();
+  const journal = page.getByRole('dialog', { name: /Journal/ });
+  await expect(journal).toContainText('Summary after scene 1.');
+  await expect(journal).toContainText('Old Gull');
+  await expect(journal).toContainText('a small traveller in a yellow raincoat and red scarf');
+  await expect(journal).toContainText('The Lighthouse');
+  await expect(journal).toContainText('Nothing yet.');
+  await page.keyboard.press('Escape');
+
+  // Finding something puts it in the inventory.
+  await choose(page, /Look around \(1\)/, 2);
+  const inventory = page.getByRole('list', { name: 'Carrying' });
+  await expect(inventory.getByRole('listitem')).toHaveText(['🎒 Brass key']);
+
+  const calls: { path: string; body: Record<string, unknown> }[] = await (
+    await request.get(`${RIG.openai}/__rig/requests`)
+  ).json();
+  const mine = calls.filter((c) => JSON.stringify(c.body).includes(setting));
+
+  // The narrator was shown the bible on the second turn.
+  const secondTurn = mine.filter((c) => c.path === '/v1/chat/completions')[1];
+  const system = (secondTurn.body.messages as { content: string }[])[0].content;
+  expect(system).toContain('STORY BIBLE');
+  expect(system).toContain('Old Gull (lighthouse keeper): a grey gull wearing a tiny blue cap');
+
+  // The illustrator got the looks fixed on the opening turn, not the narrator's later change.
+  const secondImage = mine.filter((c) => c.path === '/v1/images/generations')[1];
+  const prompt = String(secondImage.body.prompt);
+  expect(prompt).toContain(
+    'The main character: a small traveller in a yellow raincoat and red scarf',
+  );
+  expect(prompt).toContain('Old Gull: a grey gull wearing a tiny blue cap');
+  expect(prompt).not.toContain('purple cloak');
+
+  // Losing it takes it away again, and the journal survives a reload.
+  await choose(page, /Wait quietly \(2\)/, 3);
+  await expect(inventory).toHaveCount(0);
+  await page.reload();
+  await page.getByRole('button', { name: /Journal/ }).click();
+  await expect(journal).toContainText('Summary after scene 3.');
+  await expect(journal).toContainText('a small traveller in a yellow raincoat and red scarf');
+});

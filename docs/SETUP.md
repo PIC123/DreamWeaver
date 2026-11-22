@@ -65,6 +65,23 @@ Budgets are counted per rolling 24 hours and enforced in the database:
 
 Each scene gets at most three attempts at its illustration, and a story ends at 60 scenes.
 
+## The story bible
+
+Each story keeps a small record of established facts: a running summary, its characters
+and places with a fixed description of how each looks, what the reader is carrying, and
+the open threads. The narrator reads it every turn and reports what changed; the
+illustrator is given the fixed looks of whoever is in each picture. Once a character or
+place has a look it never changes, which is what keeps the pictures consistent. Readers
+see it as the **Journal** and the inventory under the illustration.
+
+Stories written before this existed start with an empty bible and fill it in as they
+continue.
+
+## Updating an existing install
+
+Whenever you pull a new version, re-run `supabase/schema.sql` before deploying it. The
+file is safe to run repeatedly and only adds what is missing.
+
 ## Sharing
 
 Stories are private. The author can switch on **Share** to make a read-only link: anyone

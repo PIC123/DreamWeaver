@@ -372,6 +372,143 @@
   box-shadow: 0 0 0 2px rgba(224, 179, 255, 0.35);
 }
 
+/* ── inventory and journal ────────────────────────────────────────────────── */
+.inventory {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inventory li {
+  padding: 0.3rem 0.75rem;
+  background: rgba(107, 68, 35, 0.55);
+  border: 1px solid rgba(245, 230, 211, 0.3);
+  border-radius: 999px;
+  color: #f5e6d3;
+  font-size: 0.85rem;
+}
+
+.inventoryNew {
+  animation: itemGained 2.4s ease-out;
+}
+
+@keyframes itemGained {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  18% {
+    transform: scale(1.18);
+    opacity: 1;
+    box-shadow: 0 0 22px rgba(255, 214, 140, 0.95);
+    border-color: #ffd68c;
+  }
+  100% {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+.journalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(8, 6, 24, 0.6);
+}
+
+.journal {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: min(26rem, 100%);
+  height: 100%;
+  padding: 1.25rem 1.4rem 2rem;
+  overflow-y: auto;
+  background: linear-gradient(160deg, #f9f6f0 0%, #ebe4d8 100%);
+  color: #2c2418;
+  font-family: Georgia, 'Times New Roman', serif;
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.5);
+  animation: journalIn 0.3s ease-out;
+}
+
+@keyframes journalIn {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+.journalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.journal h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 400;
+  color: #5c3a1e;
+}
+
+.journal h3 {
+  margin: 0 0 0.45rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid rgba(120, 90, 50, 0.3);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7a5a2e;
+}
+
+.journal p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.journalEmpty {
+  font-style: italic;
+  color: rgba(90, 65, 35, 0.75);
+}
+
+.journalList {
+  margin: 0;
+  padding-left: 1.2rem;
+  line-height: 1.6;
+}
+
+.journalEntries {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin: 0;
+}
+
+.journalEntries dt {
+  font-weight: 600;
+}
+
+.journalEntries dt span {
+  font-weight: 400;
+  font-style: italic;
+  color: #7a5a2e;
+}
+
+.journalEntries dd {
+  margin: 0.15rem 0 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #4a3c28;
+}
+
 /* ── story text ───────────────────────────────────────────────────────────── */
 .textColumn {
   display: flex;
@@ -724,7 +861,9 @@
   }
 
   .headerActions {
-    margin-left: auto;
+    flex: 1;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 0.4rem;
   }
 
@@ -783,6 +922,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .artMaterialize,
+  .inventoryNew,
+  .journal,
   .artGlow,
   .artAurora,
   .spinner,

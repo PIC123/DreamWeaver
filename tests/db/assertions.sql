@@ -88,3 +88,4 @@ select pg_temp.expect('duplicate scene position is rejected', (
 select pg_temp.expect('no write policies exist', (select count(*) from pg_policies where schemaname = 'public' and cmd <> 'SELECT'), 0);
 select pg_temp.expect('old storage policies are gone', (select count(*) from pg_policies where schemaname = 'storage'), 0);
 select pg_temp.expect('bucket is public', (select count(*) from storage.buckets where id = 'story-images' and public), 1);
+select pg_temp.expect('stories start with an empty bible', (select count(*) from public.stories where id::text like '10000000-%' and bible = '{}'::jsonb), 3);

@@ -1,3 +1,5 @@
+import type { StoryBible } from './bible';
+
 /** One beat of a story: what the reader did, what happened, and its picture. */
 export type Scene = {
   id: string;
@@ -18,6 +20,8 @@ export type Story = {
   sceneCount: number;
   isPublic: boolean;
   updatedAt: string;
+  /** Established characters, places, items and the story so far. */
+  bible: StoryBible;
 };
 
 /** What the language model returns for each turn. */
@@ -30,7 +34,7 @@ export type Turn = {
 /** Lines of the newline-delimited JSON stream from POST /api/stories/:id/turns. */
 export type TurnEvent =
   | { type: 'delta'; text: string }
-  | { type: 'scene'; scene: Scene }
+  | { type: 'scene'; scene: Scene; bible: StoryBible }
   | { type: 'error'; message: string };
 
 export const LIMITS = {

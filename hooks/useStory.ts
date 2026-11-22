@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import * as api from '@/lib/api';
+import { sameName, type StoryBible } from '@/lib/story/bible';
 import type { Scene, Story } from '@/lib/story/types';
 
 /** The turn currently being written: what the reader did and the text so far. */
@@ -17,6 +18,8 @@ export type StoryState = {
   painting: string[];
   /** A message for the reader about the last thing that went wrong, if any. */
   notice: string | null;
+  /** Names of items picked up in the most recent turn, for a moment of fanfare. */
+  newItems: string[];
 };
 
 type Action =
@@ -25,7 +28,7 @@ type Action =
   | { type: 'failed'; message: string }
   | { type: 'turn-started'; action: string | null }
   | { type: 'turn-delta'; text: string }
-  | { type: 'turn-finished'; scene: Scene }
+  | { type: 'turn-finished'; scene: Scene; bible: StoryBible }
   | { type: 'turn-failed'; message: string }
   | { type: 'paint-started'; sceneId: string }
   | { type: 'paint-finished'; sceneId: string; imageUrl: string }
@@ -41,6 +44,7 @@ const initialState: StoryState = {
   pending: null,
   painting: [],
   notice: null,
+  newItems: [],
 };
 
 export function storyReducer(state: StoryState, action: Action): StoryState {
@@ -61,6 +65,10 @@ export function storyReducer(state: StoryState, action: Action): StoryState {
       return {
         ...state,
         pending: null,
+        story: state.story ? { ...state.story, bible: action.bible } : state.story,
+        newItems: action.bible.items
+          .map((item) => item.name)
+          .filter((name) => !state.story?.bible.items.some((had) => sameName(had.name, name))),
         // Replace by id so a retried or duplicated event can never add a scene twice.
         scenes: [...state.scenes.filter((s) => s.id !== action.scene.id), action.scene].sort(
           (a, b) => a.position - b.position,
@@ -178,12 +186,12 @@ export function useStory(storyId: string) {
       turnInFlight.current = true;
       dispatch({ type: 'turn-started', action });
       try {
-        const scene = await api.takeTurn(
+        const { scene, bible } = await api.takeTurn(
           storyId,
           { action, expectedPosition: scenesRef.current.length },
           (text) => dispatch({ type: 'turn-delta', text }),
         );
-        dispatch({ type: 'turn-finished', scene });
+        dispatch({ type: 'turn-finished', scene, bible });
         if (scene.canPaint) {
           autoPainted.current.add(scene.id);
           void paint(scene);

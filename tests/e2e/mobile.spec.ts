@@ -5,6 +5,8 @@ const noSidewaysScroll = (page: import('@playwright/test').Page) =>
   page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
 
 test('the story and the book fit a phone screen', async ({ page }) => {
+  // Narrower than the default test phone: the header must wrap, not spill.
+  await page.setViewportSize({ width: 360, height: 780 });
   await startStory(page);
   await choose(page, /Go north \(1\)/, 2);
   expect(await noSidewaysScroll(page)).toBe(true);

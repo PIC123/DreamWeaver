@@ -32,7 +32,7 @@ app/
     claim/                      POST   move guest stories into an account
 components/                     auth, story screens, the page-turning book
 hooks/useStory.ts               all story state for the screens
-lib/story/                      prompts, types, streaming-JSON reader (shared)
+lib/story/                      prompts, story bible, types, streaming-JSON reader (shared)
 lib/server/                     auth, quotas, OpenAI and database helpers (server only)
 supabase/schema.sql             the whole database: tables, access rules, storage
 tests/                          unit, database and end-to-end tests

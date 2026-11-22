@@ -5,7 +5,8 @@ import { spendQuota } from '@/lib/server/quota';
 import { loadOwnedStory, loadScenes } from '@/lib/server/stories';
 import { SCENE_COLUMNS, toScene, type SceneRow } from '@/lib/story/rows';
 import { getAdmin } from '@/lib/supabase/server';
-import { buildMessages } from '@/lib/story/prompt';
+import { mergeBible, normalizeBible } from '@/lib/story/bible';
+import { buildMessages, buildSceneBrief } from '@/lib/story/prompt';
 import { LIMITS, type TurnEvent } from '@/lib/story/types';
 
 export const maxDuration = 60;
@@ -14,7 +15,8 @@ type Ctx = { params: Promise<{ storyId: string }> };
 
 /**
  * Writes the next scene. With no scenes yet this is the opening and `action` is
- * ignored. Responds with newline-delimited JSON: narration deltas, then the saved scene.
+ * ignored. Responds with newline-delimited JSON: narration deltas, then the saved scene
+ * together with the updated story bible.
  */
 export const POST = route(async (req: Request, ctx: Ctx) => {
   const { storyId } = await ctx.params;
@@ -49,7 +51,8 @@ export const POST = route(async (req: Request, ctx: Ctx) => {
 
   await spendQuota(user, 'turn');
 
-  const messages = buildMessages(story.setting ?? '', scenes, action);
+  const bible = normalizeBible(story.bible);
+  const messages = buildMessages(story.setting ?? '', scenes, action, bible);
   const encoder = new TextEncoder();
 
   // If the reader closes the tab mid-turn we still finish and save the scene:
@@ -71,6 +74,8 @@ export const POST = route(async (req: Request, ctx: Ctx) => {
       try {
         const turn = await streamTurn(messages, (text) => send({ type: 'delta', text }));
 
+        const nextBible = mergeBible(bible, turn.update);
+
         const admin = getAdmin();
         const { data, error } = await admin
           .from('scenes')
@@ -80,7 +85,7 @@ export const POST = route(async (req: Request, ctx: Ctx) => {
             action,
             narration: turn.narration,
             choices: turn.choices,
-            image_prompt: turn.imagePrompt,
+            image_prompt: buildSceneBrief(nextBible, turn),
           })
           .select(SCENE_COLUMNS)
           .single();
@@ -94,10 +99,10 @@ export const POST = route(async (req: Request, ctx: Ctx) => {
         } else {
           const { error: storyError } = await admin
             .from('stories')
-            .update({ scene_count: position + 1 })
+            .update({ scene_count: position + 1, bible: nextBible })
             .eq('id', story.id);
-          if (storyError) console.error('update scene_count failed:', storyError.message);
-          send({ type: 'scene', scene: toScene(data as SceneRow) });
+          if (storyError) console.error('update story after turn failed:', storyError.message);
+          send({ type: 'scene', scene: toScene(data as SceneRow), bible: nextBible });
         }
       } catch (err) {
         console.error('turn failed:', err);

@@ -2,8 +2,7 @@ import 'server-only';
 import OpenAI from 'openai';
 import { serverEnv } from '@/lib/env.server';
 import { readPartialString } from '@/lib/story/partialJson';
-import { parseTurn, turnJsonSchema } from '@/lib/story/prompt';
-import type { Turn } from '@/lib/story/types';
+import { parseTurn, turnJsonSchema, type ParsedTurn } from '@/lib/story/prompt';
 import { HttpError } from './http';
 
 let client: OpenAI | null = null;
@@ -44,12 +43,12 @@ export async function assertAllowed(text: string): Promise<void> {
 export async function streamTurn(
   messages: ChatMessage[],
   onNarration: (delta: string) => void,
-): Promise<Turn> {
+): Promise<ParsedTurn> {
   const stream = await openai().chat.completions.create({
     model: serverEnv.textModel,
     messages,
     response_format: { type: 'json_schema', json_schema: turnJsonSchema },
-    max_completion_tokens: 2000,
+    max_completion_tokens: 3000,
     stream: true,
     ...reasoning(),
   });
