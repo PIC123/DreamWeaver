@@ -34,3 +34,8 @@ yarn-error.log*
 .vscode/
 .idea/
 *.tsbuildinfo
+
+# tests
+/test-results/
+/playwright-report/
+/blob-report/

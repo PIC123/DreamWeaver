@@ -1,31 +1,38 @@
 {
   "name": "dreamweaver",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\""
+    "test": "vitest run",
+    "test:db": "bash tests/db/run.sh",
+    "test:e2e": "playwright test",
+    "format": "prettier --write \"**/*.{ts,tsx,mjs,json,md,css}\""
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.81.1",
-    "next": "^15.0.3",
-    "openai": "^4.73.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "@supabase/supabase-js": "^2.119.2",
+    "next": "^16.4.6",
+    "openai": "^7.62.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
-    "@types/jquery": "^3.5.32",
-    "@types/node": "^22.9.0",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "eslint": "^9.15.0",
-    "eslint-config-next": "^15.0.3",
-    "eslint-config-prettier": "^9.1.0",
-    "prettier": "^3.3.3",
-    "typescript": "^5.6.3"
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.6",
+    "prettier": "^3.10.1",
+    "typescript": "^5.6.3",
+    "vitest": "^5.1.1"
+  },
+  "engines": {
+    "node": ">=20.9"
   }
 }

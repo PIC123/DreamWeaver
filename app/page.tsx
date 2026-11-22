@@ -1,12 +1,12 @@
 'use client';
 
-import { Suspense, useEffect, useState, type KeyboardEvent } from 'react';
+import { Suspense, useEffect, useState, type FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
-import AuthModal from '@/components/auth/AuthModal';
-import { generateStoryId } from '@/lib/storyId';
-import { postRandomSetting } from '@/lib/api';
-import './Landing.css';
+import AccountMenu from '@/components/ui/AccountMenu';
+import Starfield from '@/components/ui/Starfield';
+import { ApiError, createStory, randomSetting } from '@/lib/api';
+import { LIMITS } from '@/lib/story/types';
 
 export default function LandingPage() {
   return (
@@ -16,120 +16,81 @@ export default function LandingPage() {
   );
 }
 
+/** Accepts a full story link or a bare id and returns the id. */
+function storyIdFrom(input: string): string | null {
+  const trimmed = input.trim();
+  const fromLink = /\/story\/([\w-]+)/.exec(trimmed);
+  const id = fromLink ? fromLink[1] : trimmed;
+  return /^[\w-]{1,64}$/.test(id) ? id : null;
+}
+
 function Landing() {
-  const [setting, setSetting] = useState('');
-  const [storyId, setStoryId] = useState('');
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [isGeneratingSetting, setIsGeneratingSetting] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { user, signOut, loading } = useAuth();
+  const createNew = useSearchParams().get('createNew') === '1';
+  const { user, isGuest, loading, problem } = useAuth();
 
-  const createNew = searchParams.get('createNew') === '1';
+  const [setting, setSetting] = useState('');
+  const [link, setLink] = useState('');
+  const [starting, setStarting] = useState(false);
+  const [rolling, setRolling] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Redirect logged-in users to dashboard (unless they're creating a new story)
+  // Members land on their bookshelf unless they came here to start a new story.
   useEffect(() => {
-    if (!loading && user && !createNew) {
-      router.replace('/dashboard');
+    if (!loading && user && !isGuest && !createNew) router.replace('/dashboard');
+  }, [loading, user, isGuest, createNew, router]);
+
+  const ready = !loading && !!user;
+
+  const begin = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+
+    if (setting.trim()) {
+      if (!ready) return;
+      setStarting(true);
+      try {
+        const id = await createStory(setting);
+        router.push(`/story/${id}`);
+      } catch (err) {
+        setError(
+          err instanceof ApiError ? err.message : "Couldn't start your story. Please try again.",
+        );
+        setStarting(false);
+      }
+      return;
     }
-  }, [user, loading, createNew, router]);
 
-  const startNewStory = () => {
-    if (!setting.trim()) return;
-    const id = generateStoryId();
-    router.push(`/story/${id}?setting=${encodeURIComponent(setting)}`);
+    if (link.trim()) {
+      const id = storyIdFrom(link);
+      if (id) router.push(`/story/${id}`);
+      else setError("That doesn't look like a story link.");
+      return;
+    }
+
+    setError('Describe a setting to begin, or roll the dice for an idea.');
   };
 
-  const continueStory = () => {
-    if (!storyId.trim()) return;
-    router.push(`/story/${encodeURIComponent(storyId)}`);
-  };
-
-  const handleSubmit = () => {
-    if (setting) startNewStory();
-    else if (storyId) continueStory();
-  };
-
-  const handleKeyPress = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') handleSubmit();
-  };
-
-  const openAuthModal = (mode: 'login' | 'signup') => {
-    setAuthMode(mode);
-    setIsAuthModalOpen(true);
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    setShowUserMenu(false);
-  };
-
-  const generateRandomSetting = async () => {
-    setIsGeneratingSetting(true);
+  const roll = async () => {
+    setRolling(true);
+    setError(null);
     try {
-      const generated = await postRandomSetting();
-      setSetting(generated);
+      setSetting(await randomSetting());
     } catch (err) {
-      console.error('Error generating setting:', err);
+      setError(err instanceof ApiError ? err.message : "Couldn't think of a setting. Try again.");
     } finally {
-      setIsGeneratingSetting(false);
+      setRolling(false);
     }
   };
 
   return (
     <div className="landing-container">
-      <div className="stars" aria-hidden="true">
-        {Array.from({ length: 100 }).map((_, i) => (
-          <span
-            key={i}
-            className="star"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${2 + Math.random() * 2}s`,
-            }}
-          />
-        ))}
-      </div>
+      <Starfield />
       <div className="nebula nebula-1" aria-hidden="true" />
       <div className="nebula nebula-2" aria-hidden="true" />
 
       <div className="auth-header">
-        {user ? (
-          <div className="user-menu-container">
-            <button
-              className="user-menu-button"
-              onClick={() => setShowUserMenu(!showUserMenu)}
-            >
-              {user.email}
-            </button>
-            {showUserMenu && (
-              <div className="user-menu-dropdown">
-                <button onClick={() => router.push('/dashboard')} className="user-menu-item">
-                  My Stories
-                </button>
-                <button onClick={handleSignOut} className="user-menu-item">
-                  Sign Out
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="auth-buttons">
-            <button onClick={() => openAuthModal('login')} className="auth-header-button">
-              Sign In
-            </button>
-            <button
-              onClick={() => openAuthModal('signup')}
-              className="auth-header-button signup"
-            >
-              Sign Up
-            </button>
-          </div>
-        )}
+        <AccountMenu />
       </div>
 
       <div className="content-wrapper">
@@ -139,7 +100,13 @@ function Landing() {
         </h1>
         <p className="subtitle">Where stories come to life under starlit skies</p>
 
-        <div className="input-container">
+        {problem && (
+          <p className="landing-error" role="alert">
+            {problem}
+          </p>
+        )}
+
+        <form className="input-container" onSubmit={begin}>
           <div className="input-group">
             <label htmlFor="setting-input">Begin Your Journey</label>
             <div className="input-with-button">
@@ -148,20 +115,21 @@ function Landing() {
                 type="text"
                 value={setting}
                 onChange={(e) => setSetting(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder="Enter a magical setting..."
+                maxLength={LIMITS.settingMaxLength}
+                placeholder="Describe a magical setting…"
                 className="magical-input"
-                disabled={isGeneratingSetting}
+                disabled={rolling || starting}
+                autoComplete="off"
               />
               <button
-                onClick={generateRandomSetting}
-                className="random-setting-button"
-                disabled={isGeneratingSetting}
-                title="Generate random setting"
-                aria-label="Generate random setting"
                 type="button"
+                onClick={roll}
+                className="random-setting-button"
+                disabled={!ready || rolling || starting}
+                title="Surprise me with a setting"
+                aria-label="Surprise me with a setting"
               >
-                {isGeneratingSetting ? '✨' : '🎲'}
+                {rolling ? '✨' : '🎲'}
               </button>
             </div>
           </div>
@@ -171,34 +139,37 @@ function Landing() {
           </div>
 
           <div className="input-group">
-            <label htmlFor="story-id-input">Continue Your Adventure</label>
+            <label htmlFor="story-link-input">Open a Shared Story</label>
             <input
-              id="story-id-input"
+              id="story-link-input"
               type="text"
-              value={storyId}
-              onChange={(e) => setStoryId(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder="Enter Story ID..."
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+              placeholder="Paste a story link…"
               className="magical-input"
+              disabled={starting}
+              autoComplete="off"
             />
           </div>
 
-          <button onClick={handleSubmit} className="magical-button" type="button">
+          {error && (
+            <p className="landing-error" role="alert">
+              {error}
+            </p>
+          )}
+
+          <button type="submit" className="magical-button" disabled={starting}>
             <span className="button-content">
-              <span className="button-text">Enter the Realm</span>
+              <span className="button-text">
+                {starting ? 'Opening the book…' : 'Enter the Realm'}
+              </span>
               <span className="button-icon">✨</span>
             </span>
           </button>
-        </div>
+        </form>
       </div>
 
       <div className="floating-book" aria-hidden="true" />
-
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        mode={authMode}
-      />
     </div>
   );
 }

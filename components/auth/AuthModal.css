@@ -23,9 +23,10 @@
   padding: 2.5rem;
   max-width: 450px;
   width: 90%;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
-              0 0 60px rgba(138, 43, 226, 0.3),
-              inset 0 0 40px rgba(183, 148, 246, 0.05);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 0 60px rgba(138, 43, 226, 0.3),
+    inset 0 0 40px rgba(183, 148, 246, 0.05);
   animation: fadeInScale 0.4s ease-out;
 }
 
@@ -117,8 +118,9 @@
 
 .auth-input:focus {
   border-color: #b794f6;
-  box-shadow: 0 0 20px rgba(183, 148, 246, 0.4),
-              inset 0 0 10px rgba(183, 148, 246, 0.1);
+  box-shadow:
+    0 0 20px rgba(183, 148, 246, 0.4),
+    inset 0 0 10px rgba(183, 148, 246, 0.1);
   background: rgba(15, 12, 41, 0.8);
 }
 
@@ -165,8 +167,9 @@
 
 .auth-submit-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6),
-              0 0 40px rgba(138, 43, 226, 0.3);
+  box-shadow:
+    0 6px 25px rgba(102, 126, 234, 0.6),
+    0 0 40px rgba(138, 43, 226, 0.3);
 }
 
 .auth-submit-button:active:not(:disabled) {
@@ -262,7 +265,8 @@
 }
 
 @keyframes shimmer {
-  0%, 100% {
+  0%,
+  100% {
     background-position: 0% 50%;
   }
   50% {
@@ -279,4 +283,21 @@
     opacity: 1;
     transform: scale(1);
   }
+}
+
+.auth-link-button {
+  display: block;
+  margin: 0.9rem auto 0;
+  padding: 0.25rem 0.5rem;
+  background: none;
+  border: none;
+  color: #c7b8ea;
+  font-size: 0.85rem;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.auth-link-button:hover {
+  color: #fff;
 }

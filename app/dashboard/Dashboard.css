@@ -31,8 +31,12 @@
 }
 
 @keyframes stars {
-  from { transform: translateY(0); }
-  to { transform: translateY(-100px); }
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-100px);
+  }
 }
 
 /* Dashboard Header */
@@ -61,8 +65,13 @@
 }
 
 @keyframes shimmer {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 .dashboard-header-actions {
@@ -187,8 +196,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Empty State */
@@ -209,8 +222,13 @@
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
 }
 
 .empty-state h2 {
@@ -255,8 +273,14 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Story Card */
@@ -455,4 +479,48 @@
   .empty-state p {
     font-size: 1rem;
   }
+}
+
+/* Links that share the button styles above */
+a.new-story-button,
+a.empty-state-button,
+a.story-card-image-wrapper {
+  display: block;
+  text-decoration: none;
+}
+
+a.new-story-button,
+a.empty-state-button {
+  display: inline-block;
+}
+
+.story-card-overlay .continue-button {
+  display: inline-block;
+}
+
+.story-card-title {
+  overflow-wrap: anywhere;
+}
+
+.delete-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.dashboard-note {
+  max-width: 46rem;
+  margin: 0 auto 1.5rem;
+  padding: 0.8rem 1.1rem;
+  background: rgba(183, 148, 246, 0.12);
+  border: 1px solid rgba(183, 148, 246, 0.35);
+  border-radius: 12px;
+  color: #e0d4ff;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.dashboard-note-error {
+  background: rgba(255, 107, 107, 0.12);
+  border-color: rgba(255, 107, 107, 0.4);
+  color: #ffd6d6;
 }

@@ -1,58 +1,39 @@
-import { NextResponse, type NextRequest } from 'next/server';
-import { getSupabaseAdmin, getSupabaseServer } from '@/lib/supabase/server';
+import { NextResponse } from 'next/server';
+import { requireUser } from '@/lib/server/auth';
+import { HttpError, readJson, route } from '@/lib/server/http';
+import { deleteStoryImages, loadOwnedStory } from '@/lib/server/stories';
+import { getAdmin } from '@/lib/supabase/server';
 
-export const runtime = 'nodejs';
+type Ctx = { params: Promise<{ storyId: string }> };
 
-type Params = { params: Promise<{ storyId: string }> };
-
-/**
- * Cascade-delete a story: removes Storage objects under {storyId}/ then deletes the row.
- * Authorized for the row's owner (auth user) or the holder of the row's anon_token.
- */
-export async function DELETE(req: NextRequest, ctx: Params) {
+/** Turns sharing on or off. A shared story is readable by anyone with its link. */
+export const PATCH = route(async (req: Request, ctx: Ctx) => {
   const { storyId } = await ctx.params;
-  if (!storyId) return NextResponse.json({ error: 'Missing storyId' }, { status: 400 });
+  const user = await requireUser(req);
+  const story = await loadOwnedStory(storyId, user);
 
-  const auth = req.headers.get('authorization');
-  const accessToken = auth ? auth.replace(/^Bearer\s+/i, '') : null;
-  const anonToken = req.headers.get('x-anon-token');
+  const body = await readJson<{ isPublic?: unknown }>(req);
+  if (typeof body.isPublic !== 'boolean')
+    throw new HttpError(400, 'isPublic must be true or false.');
 
-  let admin;
-  try {
-    admin = getSupabaseAdmin();
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Server config error';
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
-
-  const { data: story, error: storyErr } = await admin
+  const { error } = await getAdmin()
     .from('stories')
-    .select('user_id, is_anonymous, anon_token')
-    .eq('story_id', storyId)
-    .maybeSingle();
+    .update({ is_public: body.isPublic })
+    .eq('id', story.id);
+  if (error) throw new Error(`update sharing failed: ${error.message}`);
 
-  if (storyErr) return NextResponse.json({ error: storyErr.message }, { status: 500 });
-  if (!story) return NextResponse.json({ error: 'Story not found' }, { status: 404 });
+  return NextResponse.json({ isPublic: body.isPublic });
+});
 
-  let authorized = false;
-  if (story.is_anonymous) {
-    authorized = !!anonToken && story.anon_token === anonToken;
-  } else if (accessToken) {
-    const supa = getSupabaseServer(accessToken);
-    const { data: userResp } = await supa.auth.getUser();
-    authorized = userResp?.user?.id === story.user_id;
-  }
-  if (!authorized) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+/** Deletes a story, its scenes and its stored illustrations. */
+export const DELETE = route(async (req: Request, ctx: Ctx) => {
+  const { storyId } = await ctx.params;
+  const user = await requireUser(req);
+  const story = await loadOwnedStory(storyId, user);
 
-  // List + delete all storage objects for this story
-  const { data: files } = await admin.storage.from('story-images').list(storyId, { limit: 1000 });
-  if (files && files.length > 0) {
-    const paths = files.map((f) => `${storyId}/${f.name}`);
-    await admin.storage.from('story-images').remove(paths);
-  }
-
-  const { error: delErr } = await admin.from('stories').delete().eq('story_id', storyId);
-  if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
+  await deleteStoryImages(story.id);
+  const { error } = await getAdmin().from('stories').delete().eq('id', story.id);
+  if (error) throw new Error(`delete story failed: ${error.message}`);
 
   return NextResponse.json({ ok: true });
-}
+});

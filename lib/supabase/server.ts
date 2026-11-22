@@ -1,42 +1,20 @@
+import 'server-only';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { env, requireEnv } from '@/lib/env';
+import { serverEnv } from '@/lib/env.server';
 
-/**
- * Anon-key Supabase client for server use, bound to a caller's JWT (if any).
- * Use this when you want operations to run with the caller's RLS identity.
- */
-export function getSupabaseServer(accessToken?: string | null): SupabaseClient {
-  const url = requireEnv('supabaseUrl');
-  const anon = requireEnv('supabaseAnonKey');
-  return createClient(url, anon, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-    global: accessToken
-      ? { headers: { Authorization: `Bearer ${accessToken}` } }
-      : undefined,
-  });
+const serverAuth = { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false };
+
+let admin: SupabaseClient | null = null;
+let anon: SupabaseClient | null = null;
+
+/** Service-role client. Bypasses row level security; never import this into client code. */
+export function getAdmin(): SupabaseClient {
+  admin ??= createClient(serverEnv.supabaseUrl, serverEnv.supabaseServiceKey, { auth: serverAuth });
+  return admin;
 }
 
-/**
- * Service-role Supabase client. Bypasses RLS — use only for trusted server work
- * such as cascade-deleting Storage objects. NEVER ship to the browser.
- */
-export function getSupabaseAdmin(): SupabaseClient {
-  const url = requireEnv('supabaseUrl');
-  const key = env.supabaseServiceRoleKey;
-  if (!key) {
-    throw new Error(
-      'SUPABASE_SERVICE_ROLE_KEY is not set. Required for admin server operations.',
-    );
-  }
-  return createClient(url, key, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-  });
+/** Anon-key client for verifying tokens and reading what any visitor may read. */
+export function getAnon(): SupabaseClient {
+  anon ??= createClient(serverEnv.supabaseUrl, serverEnv.supabaseAnonKey, { auth: serverAuth });
+  return anon;
 }

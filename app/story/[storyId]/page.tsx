@@ -1,106 +1,51 @@
-'use client';
+import type { Metadata } from 'next';
+import { notFound, redirect } from 'next/navigation';
+import StoryClient from '@/components/story/StoryClient';
+import { isSupabaseConfigured } from '@/lib/env.client';
+import { getAnon } from '@/lib/supabase/server';
 
-import { useState, use } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useStoryEngine } from '@/hooks/useStoryEngine';
-import StoryHeader from '@/components/story/StoryHeader';
-import StoryImagePanel from '@/components/story/StoryImagePanel';
-import StoryChat from '@/components/story/StoryChat';
-import StoryActions from '@/components/story/StoryActions';
-import StoryInputBar from '@/components/story/StoryInputBar';
-import BookView from '@/components/story/BookView';
-import '../Story.css';
+type Props = { params: Promise<{ storyId: string }> };
 
-type Params = Promise<{ storyId: string }>;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export default function StoryPage({ params }: { params: Params }) {
-  const { storyId } = use(params);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const initialSetting = searchParams.get('setting') ?? undefined;
+/** Link previews for shared stories. Private stories reveal nothing here. */
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { storyId } = await params;
+  if (!UUID.test(storyId) || !isSupabaseConfigured) return { title: 'DreamWeaver' };
+  try {
+    const { data } = await getAnon()
+      .from('stories')
+      .select('setting, cover_url')
+      .eq('id', storyId)
+      .maybeSingle();
+    if (!data?.setting) return { title: 'A story · DreamWeaver' };
+    const title = `${data.setting} · DreamWeaver`;
+    const description = 'An illustrated interactive story, written with DreamWeaver.';
+    return {
+      title,
+      description,
+      openGraph: { title, description, images: data.cover_url ? [data.cover_url as string] : [] },
+      twitter: { card: data.cover_url ? 'summary_large_image' : 'summary', title, description },
+    };
+  } catch {
+    return { title: 'DreamWeaver' };
+  }
+}
 
-  const [isBookViewOpen, setIsBookViewOpen] = useState(false);
-  const { state, submitTurn } = useStoryEngine({ storyId, initialSetting });
+export default async function StoryPage({ params }: Props) {
+  const { storyId } = await params;
 
-  const {
-    ready,
-    setting,
-    messages,
-    storyImages,
-    imgUrl,
-    possibleActions,
-    isStoryLoading,
-    isImageLoading,
-    errorMessage,
-  } = state;
-
-  if (!ready) {
-    return (
-      <div className="story-container" style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <div className="loading-text">Conjuring your story...</div>
-      </div>
-    );
+  // Short ids from the original app: forward to the story's permanent address.
+  if (!UUID.test(storyId)) {
+    if (!isSupabaseConfigured || !/^[\w-]{1,64}$/.test(storyId)) notFound();
+    const { data } = await getAnon()
+      .from('stories')
+      .select('id')
+      .eq('legacy_id', storyId)
+      .maybeSingle();
+    if (!data) notFound();
+    redirect(`/story/${data.id as string}`);
   }
 
-  if (errorMessage && messages.length === 0) {
-    return (
-      <div className="story-container" style={{ padding: '2rem', textAlign: 'center' }}>
-        <h2>Story unavailable</h2>
-        <p style={{ color: '#c7b8ea' }}>{errorMessage}</p>
-        <button className="back-button" type="button" onClick={() => router.push('/')}>
-          ← Back to Menu
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="story-container">
-      <div
-        className="overlay"
-        style={{ backgroundImage: imgUrl ? `url(${imgUrl})` : 'none' }}
-      />
-
-      <StoryHeader
-        setting={setting}
-        storyId={storyId}
-        onOpenBookView={() => setIsBookViewOpen(true)}
-        bookViewDisabled={messages.length === 0}
-      />
-
-      <div className="main-content">
-        <StoryImagePanel
-          imgUrl={imgUrl}
-          storyImages={storyImages}
-          isImageLoading={isImageLoading}
-        />
-
-        <div className="chat-section">
-          <StoryChat messages={messages} />
-          <StoryActions
-            actions={possibleActions}
-            disabled={isStoryLoading}
-            onActionClick={submitTurn}
-          />
-          <StoryInputBar disabled={isStoryLoading} onSubmit={submitTurn} />
-
-          <div className="bottom-controls">
-            <button onClick={() => router.push('/')} className="back-button" type="button">
-              ← Back to Menu
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {isBookViewOpen && (
-        <BookView
-          messages={messages}
-          storyImages={storyImages}
-          possibleActions={possibleActions}
-          onActionClick={submitTurn}
-          onClose={() => setIsBookViewOpen(false)}
-        />
-      )}
-    </div>
-  );
+  return <StoryClient storyId={storyId} />;
 }

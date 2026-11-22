@@ -1,84 +1,68 @@
 # DreamWeaver
 
-An interactive AI storybook. Players describe a setting; GPT narrates a Zork-style
-adventure and DALL-E illustrates each scene. Built on Next.js 15 + Supabase.
+An interactive, illustrated storybook. Describe a setting, then steer the story one
+choice at a time: an AI narrator writes each scene and an AI illustrator paints it.
+Read it back as a picture book with turning pages, and share it with a link.
 
-## Stack
+## How it works
 
-- **Next.js 15** (App Router, TypeScript)
-- **Supabase** for auth + Postgres + Storage
-- **OpenAI** for chat + image generation, called server-side only
-- **turn.js** for the realistic page-flip BookView
-- Deployed on **Vercel**
+- **Next.js 16** (App Router, TypeScript, React 19), deployed on Vercel.
+- **Supabase** for accounts, the database and image storage.
+- **OpenAI** for narration (`gpt-6-luna`), illustration (`gpt-image-2.6-flare`) and moderation.
 
-## Local development
+Every visitor gets a guest session automatically, so they can start writing straight
+away. Signing up later keeps everything they wrote as a guest.
 
-```bash
-cp .env.example .env.local        # then fill in your keys
-npm install
-npm run dev                       # http://localhost:3000
-```
-
-## Environment variables
-
-See [`VERCEL_SETUP.md`](./VERCEL_SETUP.md) for the full list. In summary:
-
-- Public: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- Server-only: `OPENAI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-
-## First-time Supabase setup
-
-Open the SQL Editor in your Supabase project and run
-[`supabase/migrations/001_initial.sql`](./supabase/migrations/001_initial.sql).
-That creates the schema, RLS, and Storage policies. Then create a public Storage
-bucket named `story-images`.
-
-See [`SUPABASE_SETUP.md`](./SUPABASE_SETUP.md) and
-[`STORAGE_TROUBLESHOOTING.md`](./STORAGE_TROUBLESHOOTING.md) for deeper details.
-
-## Project layout
+The browser only ever **reads** from Supabase (its own stories and shared ones). Every
+write, and every call to OpenAI, goes through the API routes in `app/api`, which check
+who is asking, enforce daily budgets, and build the prompts themselves.
 
 ```
-app/                   Next.js App Router
+app/
+  page.tsx                      landing: start a story
+  dashboard/                    your bookshelf
+  story/[storyId]/              play a story, or read a shared one
+  auth/reset/                   password reset landing page
   api/
-    chat/              POST /api/chat   — server-side OpenAI chat
-    image/             POST /api/image  — server-side DALL-E
-    random-setting/    POST /api/random-setting
-    stories/[id]/      DELETE /api/stories/[id] — cascade delete (row + images)
-    upload-image/      POST /api/upload-image   — fetch OpenAI image, upload to Supabase
-  page.tsx             Landing
-  story/[storyId]/     Story page (URL-routable now)
-  dashboard/           User dashboard
-components/
-  auth/                AuthProvider, AuthModal
-  story/               Story sub-components + BookView
-  ui/                  ErrorBoundary, etc.
-hooks/
-  useStoryEngine.ts    Single source of truth for story state
-lib/
-  api.ts               Client-side helpers that call /api/*
-  env.ts               Centralised env access (with REACT_APP_ fallback)
-  openai.ts            Server-only OpenAI client
-  prompt.ts            System prompt + JSON schema for structured outputs
-  storyId.ts           crypto.randomUUID() helpers
-  storyService.ts      Supabase client-side reads/writes
-  supabase/
-    client.ts          Browser Supabase client
-    server.ts          Server Supabase clients (anon + service_role)
-  anonStore.ts         localStorage of anon-owner tokens
-types/
-  story.ts             Shared TypeScript types
-supabase/
-  migrations/          SQL migrations
+    stories/                    POST   create a story
+    stories/[id]/               PATCH  share on/off · DELETE (also removes pictures)
+    stories/[id]/turns/         POST   write the next scene (streams the narration)
+    stories/[id]/scenes/[id]/image/   POST   paint a scene's illustration
+    random-setting/             POST   "surprise me" setting
+    claim/                      POST   move guest stories into an account
+components/                     auth, story screens, the page-turning book
+hooks/useStory.ts               all story state for the screens
+lib/story/                      prompts, types, streaming-JSON reader (shared)
+lib/server/                     auth, quotas, OpenAI and database helpers (server only)
+supabase/schema.sql             the whole database: tables, access rules, storage
+tests/                          unit, database and end-to-end tests
 ```
 
-## Available scripts
+## Setup
 
-| Script | Description |
+See **[docs/SETUP.md](docs/SETUP.md)** for the full walkthrough. In short:
+
+1. In Supabase: run `supabase/schema.sql` in the SQL Editor, and turn on
+   **Allow anonymous sign-ins** (Authentication → Sign In / Providers).
+2. Copy `.env.example` to `.env.local` and fill in the four required values.
+3. `npm install && npm run dev`, then open http://localhost:3000.
+
+## Scripts
+
+| Command | What it does |
 | --- | --- |
-| `npm run dev` | Start the local dev server |
-| `npm run build` | Production build |
-| `npm run start` | Run the production build |
-| `npm run lint` | ESLint |
-| `npm run typecheck` | `tsc --noEmit` |
-| `npm run format` | Prettier write |
+| `npm run dev` | Local development server |
+| `npm run build` / `npm start` | Production build / serve it |
+| `npm run lint` · `npm run typecheck` | ESLint · TypeScript |
+| `npm test` | Unit tests (Vitest) |
+| `npm run test:db` | Applies `supabase/schema.sql` to a scratch Postgres and checks the access rules and the upgrade path |
+| `npm run test:e2e` | Browser tests of the whole app against local stand-ins (no real API keys needed) |
+
+`test:db` and `test:e2e` need a local Postgres (`PGADMIN_URL`, default
+`postgresql://postgres:postgres@127.0.0.1:5432/postgres`); `test:e2e` also needs a
+[PostgREST](https://github.com/PostgREST/postgrest/releases) binary on your `PATH`
+(or `POSTGREST_BIN`). CI runs all of it on every push; see `.github/workflows/ci.yml`.
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).
