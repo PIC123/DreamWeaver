@@ -105,3 +105,30 @@ test('guests have a daily limit', async ({ page }) => {
   await expect(alertIn(page)).toContainText("today's limit for guests");
   await expect(page.getByRole('log')).not.toContainText('Scene 7');
 });
+
+test('the previous picture stays, glowing, until the next one materialises over it', async ({
+  page,
+}) => {
+  await startStory(page);
+  const art = page.getByRole('region', { name: 'Illustrations' });
+
+  // Hold the next illustration back so the waiting state can be observed.
+  let release = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route('**/api/stories/*/scenes/*/image', async (route) => {
+    await held;
+    await route.continue();
+  });
+
+  await choose(page, /Go north \(1\)/, 2);
+  await expect(art.getByRole('status')).toHaveText(/Painting the next scene/);
+  // Scene 1's picture is still on screen, but is no longer announced as this scene's illustration.
+  await expect(art.locator('img').first()).toBeVisible();
+  await expect(art.getByRole('img', { name: /^Illustration:/ })).toHaveCount(0);
+
+  release();
+  await expect(art.getByRole('img', { name: /^Illustration: Scene 2/ })).toBeVisible();
+  await expect(art.getByRole('status')).toHaveCount(0);
+  // The old picture remains underneath while the new one appears over it.
+  await expect(art.locator('img[aria-hidden="true"]')).toHaveCount(1);
+});

@@ -26,6 +26,12 @@ export default function StoryView({ story: s }: Props) {
   // While a new turn is being written, follow it rather than an older pick.
   const shown = (!s.busy && s.scenes.find((sc) => sc.id === pickedSceneId)) || latest;
   const choices = s.busy ? [] : (latest?.choices ?? []);
+  // The newest earlier picture, kept on screen until the shown scene has its own.
+  const previousUrl =
+    (shown &&
+      [...s.scenes].reverse().find((sc) => sc.position < shown.position && sc.imageUrl)
+        ?.imageUrl) ||
+    null;
 
   // Keep the newest words in view as they arrive (but leave a freshly opened
   // story at the top). On desktop the log scrolls inside its own box; on
@@ -121,7 +127,9 @@ export default function StoryView({ story: s }: Props) {
         <section className={styles.artColumn} aria-label="Illustrations">
           <SceneArt
             scene={shown}
+            previousUrl={previousUrl}
             painting={!!shown && s.painting.includes(shown.id)}
+            anticipating={s.busy && s.scenes.length > 0}
             onPaint={shown ? () => void s.paint(shown) : undefined}
           />
           {s.scenes.length > 1 && (

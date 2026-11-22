@@ -178,19 +178,132 @@
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
 }
 
+/* Two stacked pictures: the one that was showing, and the newest on top. */
 .art img {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  animation: reveal 0.8s ease;
+  transition: filter 0.8s ease;
 }
 
-@keyframes reveal {
+.artTop {
+  opacity: 0;
+}
+
+/* The new picture grows out from the centre through a soft-edged circle while
+   it sharpens and cools from a bright glow. */
+.artMaterialize {
+  opacity: 1;
+  -webkit-mask: radial-gradient(circle, #000 55%, transparent 72%) center / 320% 320% no-repeat;
+  mask: radial-gradient(circle, #000 55%, transparent 72%) center / 320% 320% no-repeat;
+  animation: materialize 2.2s cubic-bezier(0.45, 0, 0.35, 1) both;
+}
+
+@keyframes materialize {
   from {
-    opacity: 0;
-    transform: scale(1.03);
+    -webkit-mask-size: 0% 0%;
+    mask-size: 0% 0%;
+    filter: blur(14px) brightness(1.9) saturate(1.5);
+    transform: scale(1.08);
   }
+  55% {
+    filter: blur(3px) brightness(1.25) saturate(1.2);
+  }
+  to {
+    -webkit-mask-size: 320% 320%;
+    mask-size: 320% 320%;
+    filter: none;
+    transform: none;
+  }
+}
+
+/* An earlier picture standing in while the next one is on its way. */
+.artWaiting img {
+  filter: saturate(0.65) brightness(0.72) blur(1.5px);
+}
+
+.artGlow {
+  animation: glow 2.4s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%,
+  100% {
+    border-color: rgba(183, 148, 246, 0.35);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.45),
+      0 0 18px rgba(183, 148, 246, 0.25);
+  }
+  50% {
+    border-color: rgba(224, 179, 255, 0.95);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.45),
+      0 0 46px rgba(183, 148, 246, 0.75),
+      0 0 90px rgba(102, 126, 234, 0.4);
+  }
+}
+
+/* Slow drifting light across the waiting picture. */
+.artAurora {
+  position: absolute;
+  inset: -40%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(183, 148, 246, 0.55) 60deg,
+    transparent 130deg,
+    rgba(102, 126, 234, 0.5) 210deg,
+    transparent 290deg
+  );
+  filter: blur(40px);
+  mix-blend-mode: screen;
+  animation: drift 7s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes drift {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.artStatus {
+  position: absolute;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.5rem 1rem;
+  background: rgba(15, 12, 41, 0.78);
+  border: 1px solid rgba(183, 148, 246, 0.45);
+  border-radius: 999px;
+  color: #f0e4ff;
+  font-size: 0.9rem;
+  font-style: italic;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+}
+
+.artOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  padding: 1.5rem;
+  background: rgba(15, 12, 41, 0.45);
+  color: #f0e4ff;
+  font-style: italic;
+  text-align: center;
+}
+
+.artOverlay p {
+  margin: 0;
 }
 
 .artEmpty {
@@ -669,7 +782,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .art img,
+  .artMaterialize,
+  .artGlow,
+  .artAurora,
   .spinner,
   .listening,
   .writing::after {

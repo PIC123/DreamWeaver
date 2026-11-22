@@ -107,7 +107,7 @@ const messageOf = (err: unknown, fallback: string) =>
  * written, and the actions an author can take. The server owns all writes.
  */
 export function useStory(storyId: string) {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, claimVersion } = useAuth();
   const [state, dispatch] = useReducer(storyReducer, initialState);
   const userId = user?.id ?? null;
 
@@ -135,8 +135,9 @@ export function useStory(storyId: string) {
     return () => {
       cancelled = true;
     };
-    // Reload when the signed-in person changes: what they may see changes with it.
-  }, [storyId, userId, authLoading]);
+    // Reload when the signed-in person changes, or when stories they wrote as a
+    // guest have just been moved into their account: what they may see changes.
+  }, [storyId, userId, authLoading, claimVersion]);
 
   const isOwner = !!state.story && !!userId && state.story.ownerId === userId;
 
