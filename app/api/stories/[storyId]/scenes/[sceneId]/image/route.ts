@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/server/auth';
-import { paintFailureMessage, paintScene } from '@/lib/server/ai';
+import { paintFailure, paintScene } from '@/lib/server/ai';
 import { HttpError, isUuid, route } from '@/lib/server/http';
 import { IMAGE_BUCKET, loadOwnedStory } from '@/lib/server/stories';
 import { SCENE_COLUMNS, type SceneRow } from '@/lib/story/rows';
@@ -65,10 +65,17 @@ export const POST = route(async (req: Request, ctx: Ctx) => {
     );
   } catch (err) {
     console.error('paint failed:', err);
-    throw new HttpError(
-      502,
-      paintFailureMessage(err, "The illustrator couldn't paint this scene."),
-    );
+    const failure = paintFailure(err, "The illustrator couldn't paint this scene.");
+    if (failure.turnedAway) {
+      // Nothing was painted, so this should not count against the scene's attempts.
+      const { error: undoError } = await admin
+        .from('scenes')
+        .update({ image_attempts: scene.image_attempts })
+        .eq('id', scene.id)
+        .is('image_url', null);
+      if (undoError) console.error('restore attempt failed:', undoError.message);
+    }
+    throw failure.error;
   }
 
   const path = `${story.id}/${scene.id}.webp`;

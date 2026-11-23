@@ -68,26 +68,64 @@ export async function streamTurn(
   return parseTurn(raw);
 }
 
+export type PaintFailure = {
+  error: HttpError;
+  /** True when the service turned the request away before doing any work. */
+  turnedAway: boolean;
+};
+
+function retryAfterSeconds(err: unknown): number {
+  const headers = (err as { headers?: unknown })?.headers as
+    { get?: (name: string) => string | null } | Record<string, string> | undefined;
+  const raw =
+    typeof headers?.get === 'function'
+      ? headers.get('retry-after')
+      : (headers as Record<string, string> | undefined)?.['retry-after'];
+  const seconds = Number.parseFloat(raw ?? '');
+  // Without a hint, twenty seconds is usually enough for a per-minute limit to ease.
+  return Math.min(45, Math.max(1, Number.isFinite(seconds) ? Math.ceil(seconds) : 20));
+}
+
 /**
  * Explains a failed illustration in the reader's terms. The real error still
- * goes to the server log; this only picks which honest sentence to show.
+ * goes to the server log; this only picks which honest sentence to show, and
+ * whether it is worth simply waiting and trying again.
  */
-export function paintFailureMessage(err: unknown, fallback: string): string {
-  const e = err as { status?: number; code?: unknown; message?: unknown };
-  const detail = `${String(e?.code ?? '')} ${String(e?.message ?? '')}`;
+export function paintFailure(err: unknown, fallback: string): PaintFailure {
+  const e = err as { status?: number; code?: unknown; type?: unknown; message?: unknown };
+  const detail = `${String(e?.code ?? '')} ${String(e?.type ?? '')} ${String(e?.message ?? '')}`;
+  const fail = (message: string, turnedAway = false, retryAfter?: number): PaintFailure => ({
+    error: new HttpError(502, message, retryAfter),
+    turnedAway,
+  });
+
   if (err instanceof OpenAI.APIConnectionTimeoutError || /timed? ?out/i.test(detail)) {
-    return 'The illustrator took too long this time. Please try again.';
+    return fail('The illustrator took too long this time. Please try again.');
+  }
+  if (e?.status === 429 && /insufficient_quota|billing|exceeded your current quota/i.test(detail)) {
+    return fail(
+      "The illustrator has stopped for now: the site's OpenAI account is out of credit or has reached its spending limit. (Site owner: check Billing and Limits in the OpenAI dashboard.)",
+      true,
+    );
   }
   if (e?.status === 429) {
-    return 'The illustrator is very busy right now. Wait a minute, then try again.';
+    return fail(
+      'The illustrator is very busy right now. Wait a minute, then try again.',
+      true,
+      retryAfterSeconds(err),
+    );
   }
   if (e?.status === 400 && /moderation|safety|policy/i.test(detail)) {
-    return "The illustrator wasn't comfortable painting that. Try describing it a little differently.";
+    return fail(
+      "The illustrator wasn't comfortable painting that. Try describing it a little differently.",
+    );
   }
   if (e?.status === 401 || e?.status === 403 || e?.status === 404) {
-    return 'The illustrator is not set up correctly: the image model or API key was rejected. The server log has the details.';
+    return fail(
+      'The illustrator is not set up correctly: the image model or API key was rejected. The server log has the details.',
+    );
   }
-  return fallback;
+  return fail(fallback);
 }
 
 /** Paints one illustration and returns it as WebP bytes. */

@@ -10,6 +10,7 @@ import {
   draftCharacter,
   fetchMyCharacters,
   paintPortrait,
+  retryWhenBusy,
   saveCharacter,
   type PortraitDraft,
 } from '@/lib/api';
@@ -21,7 +22,7 @@ const messageOf = (err: unknown, fallback: string) =>
   err instanceof ApiError ? err.message : fallback;
 
 /** One portrait option: on its way, painted, or failed with a reason. */
-type Portrait = { url: string | null; error: string | null };
+type Portrait = { url: string | null; error: string | null; waiting?: boolean };
 
 const PROMPTS = [
   'How old do they look, and how are they built?',
@@ -69,7 +70,11 @@ export default function CharactersPage() {
       setPortraits((prev) => prev.map((p, i) => (i === option ? portrait : p)));
     set({ url: null, error: null });
     try {
-      set({ url: await paintPortrait(draftId, option), error: null });
+      const url = await retryWhenBusy(
+        () => paintPortrait(draftId, option),
+        () => set({ url: null, error: null, waiting: true }),
+      );
+      set({ url, error: null });
     } catch (err) {
       set({ url: null, error: messageOf(err, "The illustrator couldn't paint this portrait.") });
     }
@@ -290,7 +295,11 @@ export default function CharactersPage() {
                       role="status"
                     >
                       <div className={styles.spinner} aria-hidden="true" />
-                      <p>Painting portrait {index + 1}…</p>
+                      <p>
+                        {portrait.waiting
+                          ? 'The illustrator is busy. Trying again in a moment…'
+                          : `Painting portrait ${index + 1}…`}
+                      </p>
                     </div>
                   ),
                 )}

@@ -167,7 +167,8 @@ export function useStory(storyId: string) {
       paintRequested.current.add(scene.id);
       dispatch({ type: 'paint-started', sceneId: scene.id });
       try {
-        const imageUrl = await api.paintScene(storyId, scene.id);
+        // A busy illustrator is worth waiting for; the scene keeps showing as being painted.
+        const imageUrl = await api.retryWhenBusy(() => api.paintScene(storyId, scene.id));
         dispatch({ type: 'paint-finished', sceneId: scene.id, imageUrl });
       } catch (err) {
         paintRequested.current.delete(scene.id);

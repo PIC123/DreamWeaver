@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/server/auth';
-import { paintFailureMessage, paintScene } from '@/lib/server/ai';
+import { paintFailure, paintScene } from '@/lib/server/ai';
 import { HttpError, isUuid, readJson, route } from '@/lib/server/http';
 import { IMAGE_BUCKET, draftBriefPath, draftFolder, draftOptionPath } from '@/lib/server/stories';
 import { getAdmin } from '@/lib/supabase/server';
@@ -55,10 +55,7 @@ export const POST = route(async (req: Request, ctx: Ctx) => {
     bytes = await paintScene(buildPortraitPrompt(appearance, DEFAULT_ART_STYLE));
   } catch (err) {
     console.error('portrait failed:', err);
-    throw new HttpError(
-      502,
-      paintFailureMessage(err, "The illustrator couldn't paint this portrait."),
-    );
+    throw paintFailure(err, "The illustrator couldn't paint this portrait.").error;
   }
 
   const { error: uploadError } = await bucket.upload(path, bytes, {

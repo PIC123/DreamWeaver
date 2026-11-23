@@ -7,6 +7,8 @@ export class HttpError extends Error {
   constructor(
     public status: number,
     message: string,
+    /** Set when the caller should simply wait this many seconds and try again. */
+    public retryAfter?: number,
   ) {
     super(message);
   }
@@ -14,7 +16,10 @@ export class HttpError extends Error {
 
 export function errorResponse(err: unknown): NextResponse {
   if (err instanceof HttpError) {
-    return NextResponse.json({ error: err.message }, { status: err.status });
+    return NextResponse.json(
+      { error: err.message, ...(err.retryAfter ? { retryAfter: err.retryAfter } : {}) },
+      { status: err.status },
+    );
   }
   if (err instanceof MissingEnvError) {
     console.error(err.message);

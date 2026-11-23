@@ -173,9 +173,7 @@ test('portraits are still painted when the description write-up comes back empty
   );
 });
 
-test('a portrait that fails can be retried on its own, and says why it failed', async ({
-  page,
-}) => {
+test('a busy illustrator is waited for, and portraits still arrive', async ({ page }) => {
   await page.goto('/characters');
   await page.getByLabel('Name').fill('Bram');
   await page
@@ -183,16 +181,37 @@ test('a portrait that fails can be retried on its own, and says why it failed', 
     .fill(`BUSYIMG a cheerful baker with flour on his apron ${Date.now()}`);
   await page.getByRole('button', { name: /Paint my character/ }).click();
 
-  // The first portrait hits a rate limit; the other two are unaffected.
+  // The first portrait is turned away once for being busy; the app waits and retries.
+  await expect(page.getByText('The illustrator is busy. Trying again in a moment…')).toBeVisible();
   const options = page.getByRole('radio', { name: /Portrait option/ });
-  await expect(options).toHaveCount(2);
-  await expect(alertIn(page)).toContainText('very busy right now');
-
-  await page.getByRole('button', { name: 'Try this one again' }).click();
   await expect(options).toHaveCount(3);
   await expect(alertIn(page)).toHaveCount(0);
 
   await options.first().click();
   await page.getByRole('button', { name: /Keep this character/ }).click();
   await expect(page.getByRole('img', { name: 'Portrait of Bram' })).toBeVisible();
+});
+
+test('an account that is out of credit is reported as that, not as being busy', async ({
+  page,
+}) => {
+  await page.goto('/characters');
+  await page.getByLabel('Name').fill('Odd');
+  await page
+    .getByLabel('What do they look like?')
+    .fill(`QUOTAIMG a lighthouse keeper in a long grey coat ${Date.now()}`);
+  await page.getByRole('button', { name: /Paint my character/ }).click();
+
+  const alerts = alertIn(page);
+  await expect(alerts).toHaveCount(3);
+  await expect(alerts.first()).toContainText('out of credit or has reached its spending limit');
+  await expect(page.getByRole('button', { name: 'Try this one again' })).toHaveCount(3);
+});
+
+test('a scene is still illustrated when the illustrator is briefly busy', async ({ page }) => {
+  await startStory(page, `A marsh of lanterns ${Date.now()}`);
+  await page.getByLabel('Describe what you do next').fill('BUSYIMG wade onward');
+  await page.getByRole('button', { name: 'Send' }).click();
+  await expect(page.getByRole('img', { name: /^Illustration: Scene 2/ })).toBeVisible();
+  await expect(alertIn(page)).toHaveCount(0);
 });

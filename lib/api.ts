@@ -21,8 +21,32 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    /** Set when the server says the same request should work after this many seconds. */
+    public retryAfter?: number,
   ) {
     super(message);
+  }
+}
+
+const sleep = (seconds: number) => new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+
+/**
+ * Runs a request and, if the server says it was only turned away for being
+ * busy, waits as long as it asks and tries again, up to `retries` times.
+ */
+export async function retryWhenBusy<T>(
+  request: () => Promise<T>,
+  onWaiting?: (seconds: number) => void,
+  retries = 2,
+): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await request();
+    } catch (err) {
+      if (!(err instanceof ApiError) || !err.retryAfter || attempt >= retries) throw err;
+      onWaiting?.(err.retryAfter);
+      await sleep(err.retryAfter);
+    }
   }
 }
 
@@ -40,8 +64,15 @@ async function authedFetch(path: string, init: RequestInit = {}): Promise<Respon
     throw new ApiError(0, "Couldn't reach DreamWeaver. Check your connection and try again.");
   }
   if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as { error?: string } | null;
-    throw new ApiError(res.status, body?.error ?? `Request failed (${res.status}).`);
+    const body = (await res.json().catch(() => null)) as {
+      error?: string;
+      retryAfter?: number;
+    } | null;
+    throw new ApiError(
+      res.status,
+      body?.error ?? `Request failed (${res.status}).`,
+      typeof body?.retryAfter === 'number' ? body.retryAfter : undefined,
+    );
   }
   return res;
 }

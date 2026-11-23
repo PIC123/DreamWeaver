@@ -362,8 +362,27 @@ export function startOpenAI({ port }) {
       if (url.pathname === '/v1/images/generations') {
         if (body.prompt.includes('BUSYIMG') && !failedOnce.has(body.prompt)) {
           failedOnce.add(body.prompt);
+          return sendJson(
+            res,
+            429,
+            {
+              error: {
+                message: 'rig: rate limited',
+                type: 'rate_limit_error',
+                code: 'rate_limit_exceeded',
+              },
+            },
+            { 'retry-after': '1' },
+          );
+        }
+        if (body.prompt.includes('QUOTAIMG')) {
           return sendJson(res, 429, {
-            error: { message: 'rig: rate limited', type: 'rate_limit_error' },
+            error: {
+              message:
+                'You exceeded your current quota, please check your plan and billing details.',
+              type: 'insufficient_quota',
+              code: 'insufficient_quota',
+            },
           });
         }
         if (body.prompt.includes('FAILIMG') && !failedOnce.has(body.prompt)) {
