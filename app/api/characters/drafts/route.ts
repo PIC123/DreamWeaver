@@ -37,12 +37,14 @@ export const POST = route(async (req: Request) => {
   await assertAllowed(`${name}\n${description}`);
   await spendQuota(user, 'portrait');
 
+  // If the write-up fails, the reader's own words are still a usable look, and
+  // they can edit it before saving. Painting should not be held up by it.
   let appearance: string;
   try {
     appearance = await distilAppearance(name, description);
   } catch (err) {
-    console.error('distil appearance failed:', err);
-    throw new HttpError(502, "We couldn't picture that character. Please try again.");
+    console.error('distil appearance failed; using the description as written:', err);
+    appearance = description.replace(/\s+/g, ' ').trim().slice(0, 320);
   }
 
   const prompt = buildPortraitPrompt(appearance, DEFAULT_ART_STYLE);

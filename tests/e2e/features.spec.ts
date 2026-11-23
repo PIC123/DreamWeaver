@@ -155,3 +155,20 @@ test('a story can be laid out for printing or saving as a PDF', async ({ page })
   const pdf = await page.pdf({ format: 'A4' });
   expect(pdf.byteLength).toBeGreaterThan(5000);
 });
+
+test('portraits are still painted when the description write-up comes back empty', async ({
+  page,
+}) => {
+  await page.goto('/characters');
+  await page.getByLabel('Name').fill('Quill');
+  await page
+    .getByLabel('What do they look like?')
+    .fill('EMPTYLOOK   a tall man with messy brown hair,\nglasses and a green flannel shirt');
+  await page.getByRole('button', { name: /Paint my character/ }).click();
+
+  await expect(page.getByRole('radio', { name: /Portrait option/ })).toHaveCount(3);
+  // The reader's own words stand in for the look, tidied, and can be edited.
+  await expect(page.getByLabel(/How the illustrator will describe them/)).toHaveValue(
+    'EMPTYLOOK a tall man with messy brown hair, glasses and a green flannel shirt',
+  );
+});

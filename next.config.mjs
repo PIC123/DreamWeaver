@@ -23,14 +23,19 @@ const supabaseOrigin = origin(supabaseUrl);
 const supabaseWs = supabaseOrigin.replace(/^http/, 'ws');
 const isDev = process.env.NODE_ENV !== 'production';
 
+// Vercel adds a comment toolbar to preview deployments; let it load there only.
+const preview = process.env.VERCEL_ENV === 'preview';
+const live = preview ? ' https://vercel.live' : '';
+
 const csp = [
   "default-src 'self'",
   // Next.js injects small inline bootstrap scripts; dev mode also needs eval for fast refresh.
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}${live}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: ${supabaseOrigin}`.trim(),
-  "font-src 'self' data:",
-  `connect-src 'self' ${supabaseOrigin} ${supabaseWs}`.trim(),
+  `img-src 'self' data: blob: ${supabaseOrigin}${live}${preview ? ' https://vercel.com' : ''}`.trim(),
+  `font-src 'self' data:${live}${preview ? ' https://assets.vercel.com' : ''}`,
+  `connect-src 'self' ${supabaseOrigin} ${supabaseWs}${live}${preview ? ' wss://ws-us3.pusher.com' : ''}`.trim(),
+  ...(preview ? ['frame-src https://vercel.live'] : []),
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

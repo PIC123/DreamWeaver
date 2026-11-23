@@ -374,12 +374,14 @@ export function startOpenAI({ port }) {
                 message: {
                   role: 'assistant',
                   // The character creator asks for a tidy look; anything else is a setting idea.
-                  content: body.messages[0].content.includes('character sheet')
-                    ? `Distilled look: ${lastUser.split('Description: ')[1] ?? lastUser}`.slice(
-                        0,
-                        300,
-                      )
-                    : 'A clockwork garden beneath a paper moon',
+                  content: !body.messages[0].content.includes('character sheet')
+                    ? 'A clockwork garden beneath a paper moon'
+                    : lastUser.includes('EMPTYLOOK')
+                      ? '' // the model used its whole allowance thinking
+                      : `Distilled look: ${lastUser.split('Description: ')[1] ?? lastUser}`.slice(
+                          0,
+                          300,
+                        ),
                 },
               },
             ],

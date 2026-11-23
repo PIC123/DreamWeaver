@@ -103,7 +103,8 @@ export const FALLBACK_SETTINGS = [
 export async function inventSetting(): Promise<string> {
   const res = await openai().chat.completions.create({
     model: serverEnv.textModel,
-    max_completion_tokens: 600,
+    // Generous: the model may spend part of this thinking before it writes.
+    max_completion_tokens: 4000,
     messages: [
       {
         role: 'system',
@@ -115,7 +116,9 @@ export async function inventSetting(): Promise<string> {
     ...reasoning(),
   });
   const setting = res.choices[0]?.message?.content?.trim().replace(/^["']|["'.]$/g, '');
-  if (!setting) throw new Error('Empty setting');
+  if (!setting) {
+    throw new Error(`Empty setting (finish_reason: ${res.choices[0]?.finish_reason ?? 'none'})`);
+  }
   return setting.slice(0, 200);
 }
 
@@ -126,7 +129,8 @@ export async function inventSetting(): Promise<string> {
 export async function distilAppearance(name: string, description: string): Promise<string> {
   const res = await openai().chat.completions.create({
     model: serverEnv.textModel,
-    max_completion_tokens: 800,
+    // Generous: the model may spend part of this thinking before it writes.
+    max_completion_tokens: 4000,
     messages: [
       {
         role: 'system',
@@ -138,6 +142,8 @@ export async function distilAppearance(name: string, description: string): Promi
     ...reasoning(),
   });
   const appearance = res.choices[0]?.message?.content?.replace(/\s+/g, ' ').trim();
-  if (!appearance) throw new Error('Empty appearance');
+  if (!appearance) {
+    throw new Error(`Empty appearance (finish_reason: ${res.choices[0]?.finish_reason ?? 'none'})`);
+  }
   return appearance.slice(0, 320);
 }
