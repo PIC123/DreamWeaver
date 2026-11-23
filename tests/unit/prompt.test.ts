@@ -3,29 +3,38 @@ import { EMPTY_BIBLE, type StoryBible } from '@/lib/story/bible';
 import {
   OPENING_INSTRUCTION,
   buildImagePrompt,
+  ENDING_INSTRUCTION,
   buildMessages,
+  buildPortraitPrompt,
   buildSceneBrief,
   parseTurn,
 } from '@/lib/story/prompt';
 
+const base = {
+  setting: 'A cloud city',
+  scenes: [] as { action: string | null; narration: string }[],
+  action: null as string | null,
+  bible: EMPTY_BIBLE,
+  level: 'family' as const,
+};
+
 describe('buildMessages', () => {
   it('opens a new story with the system prompt and the opening instruction', () => {
-    const messages = buildMessages('A cloud city', [], 'ignored for the opening', EMPTY_BIBLE);
+    const messages = buildMessages({ ...base, scenes: [], action: 'ignored for the opening' });
     expect(messages.map((m) => m.role)).toEqual(['system', 'user']);
     expect(messages[0].content).toContain('"A cloud city"');
     expect(messages[1].content).toBe(OPENING_INSTRUCTION);
   });
 
   it('replays scenes as alternating turns and ends with the new action', () => {
-    const messages = buildMessages(
-      'A cloud city',
-      [
+    const messages = buildMessages({
+      ...base,
+      scenes: [
         { action: null, narration: 'Clouds drift by.' },
         { action: 'Jump', narration: 'You land softly.' },
       ],
-      'Look down',
-      EMPTY_BIBLE,
-    );
+      action: 'Look down',
+    });
     expect(messages.map((m) => [m.role, m.content]).slice(1)).toEqual([
       ['user', OPENING_INSTRUCTION],
       ['assistant', 'Clouds drift by.'],
@@ -40,7 +49,7 @@ describe('buildMessages', () => {
       action: `act ${i}`,
       narration: `scene ${i}`,
     }));
-    const messages = buildMessages('x', scenes, 'next', EMPTY_BIBLE);
+    const messages = buildMessages({ ...base, scenes, action: 'next' });
     expect(messages.length).toBe(1 + 1 + 24 * 2 + 1);
     expect(messages[1].content).toContain('16 scenes in');
     expect(messages.at(-1)!.content).toBe('next');
@@ -76,7 +85,7 @@ describe('parseTurn', () => {
 
 describe('buildImagePrompt', () => {
   it('leads with the house style and includes the setting', () => {
-    const prompt = buildImagePrompt('A cloud city', 'A girl on a balcony');
+    const prompt = buildImagePrompt('A cloud city', 'A girl on a balcony', 'watercolor');
     expect(prompt.startsWith('Watercolor storybook illustration')).toBe(true);
     expect(prompt).toContain('A cloud city');
     expect(prompt).toContain('A girl on a balcony');
@@ -98,7 +107,7 @@ const bible: StoryBible = {
 describe('the story bible in prompts', () => {
   it('gives the narrator the bible and, with a summary, replays fewer scenes', () => {
     const scenes = Array.from({ length: 20 }, (_, i) => ({ action: `a${i}`, narration: `s${i}` }));
-    const messages = buildMessages('x', scenes, 'next', bible);
+    const messages = buildMessages({ ...base, scenes, action: 'next', bible });
     expect(messages[0].content).toContain('STORY BIBLE');
     expect(messages[0].content).toContain('Old Gull (keeper): a grey gull in a blue cap');
     expect(messages[0].content).toContain('The reader is carrying: Brass key (cold)');
@@ -126,5 +135,31 @@ describe('the story bible in prompts', () => {
     const turn = parseTurn('{"narration":"Fog rolls in.","choices":[],"imagePrompt":"Fog."}');
     expect(turn.featuring).toEqual(['You']);
     expect(buildSceneBrief(bible, turn)).toContain('a child in a yellow raincoat');
+  });
+});
+
+describe('story options', () => {
+  it('writes for the chosen reading level', () => {
+    const early = buildMessages({ ...base, level: 'early' })[0].content;
+    const advanced = buildMessages({ ...base, level: 'advanced' })[0].content;
+    expect(early).toContain('five to seven');
+    expect(advanced).toContain('richer vocabulary');
+    expect(early).not.toContain('richer vocabulary');
+  });
+
+  it('paints in the chosen art style', () => {
+    expect(buildImagePrompt('x', 'y', 'pixel')).toMatch(/^Detailed 16-bit pixel art/);
+    expect(buildImagePrompt('x', 'y', 'ink')).toMatch(/^Classic pen-and-ink/);
+    expect(buildPortraitPrompt('a girl in a green coat', 'watercolor')).toContain(
+      'The character: a girl in a green coat',
+    );
+  });
+
+  it('asks for a final page when the reader ends the story', () => {
+    const scenes = [{ action: null, narration: 'Clouds drift by.' }];
+    const ending = buildMessages({ ...base, scenes, action: 'ignored', ending: true });
+    expect(ending.at(-1)!.content).toBe(ENDING_INSTRUCTION);
+    // A story with no scenes yet still opens rather than ends.
+    expect(buildMessages({ ...base, ending: true }).at(-1)!.content).toBe(OPENING_INSTRUCTION);
   });
 });

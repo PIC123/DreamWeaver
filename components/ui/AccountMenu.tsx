@@ -20,6 +20,9 @@ export default function AccountMenu({ showShelfLink = true }: { showShelfLink?: 
               My Stories
             </Link>
           )}
+          <Link href="/characters" className="auth-header-button">
+            My Characters
+          </Link>
           <button type="button" onClick={() => setModal('login')} className="auth-header-button">
             Sign In
           </button>
@@ -49,6 +52,9 @@ export default function AccountMenu({ showShelfLink = true }: { showShelfLink?: 
                   My Stories
                 </Link>
               )}
+              <Link href="/characters" className="user-menu-item" role="menuitem">
+                My Characters
+              </Link>
               <button
                 type="button"
                 role="menuitem"

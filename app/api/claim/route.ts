@@ -34,6 +34,12 @@ export const POST = route(async (req: Request) => {
       .select('id');
     if (moveError) throw new Error(`claim stories failed: ${moveError.message}`);
     claimed = moved?.length ?? 0;
+
+    const { error: characterError } = await admin
+      .from('characters')
+      .update({ user_id: user.id })
+      .eq('user_id', ticket.anon_user_id as string);
+    if (characterError) console.error('claim characters failed:', characterError.message);
   }
 
   const { error: deleteError } = await admin

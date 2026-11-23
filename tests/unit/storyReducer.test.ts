@@ -12,6 +12,9 @@ const story: Story = {
   isPublic: false,
   updatedAt: '2026-01-01T00:00:00Z',
   bible: EMPTY_BIBLE,
+  readingLevel: 'family',
+  artStyle: 'watercolor',
+  finished: false,
 };
 
 const scene = (position: number, extra: Partial<Scene> = {}): Scene => ({
@@ -123,5 +126,18 @@ describe('storyReducer', () => {
     expect(state.newItems).toEqual(['Brass key']);
     state = storyReducer(state, { type: 'turn-finished', scene: scene(3), bible: withKey });
     expect(state.newItems).toEqual([]);
+  });
+
+  it('marks the story finished when the final page arrives, and keeps it that way', () => {
+    let state = ready([scene(0)]);
+    state = storyReducer(state, {
+      type: 'turn-finished',
+      scene: scene(1),
+      bible: EMPTY_BIBLE,
+      finished: true,
+    });
+    expect(state.story?.finished).toBe(true);
+    state = storyReducer(state, { type: 'paint-finished', sceneId: 'scene-1', imageUrl: 'x' });
+    expect(state.story?.finished).toBe(true);
   });
 });

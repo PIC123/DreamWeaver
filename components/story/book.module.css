@@ -193,6 +193,15 @@
   }
 }
 
+.theEnd {
+  margin: 1.4em 0 0;
+  text-align: center;
+  font-size: 1.3em;
+  font-style: italic;
+  letter-spacing: 0.08em;
+  color: #6b4423;
+}
+
 .pageNumber {
   position: absolute;
   bottom: 4%;

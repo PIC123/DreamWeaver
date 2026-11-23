@@ -153,6 +153,7 @@ test('the story keeps a journal, an inventory and consistent character looks', a
   await choose(page, /Look around \(1\)/, 2);
   const inventory = page.getByRole('list', { name: 'Carrying' });
   await expect(inventory.getByRole('listitem')).toHaveText(['🎒 Brass key']);
+  await expect(page.getByRole('img', { name: /^Illustration: Scene 2/ })).toBeVisible();
 
   const calls: { path: string; body: Record<string, unknown> }[] = await (
     await request.get(`${RIG.openai}/__rig/requests`)

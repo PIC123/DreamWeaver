@@ -21,6 +21,8 @@ type Props = {
   paintingIds?: string[];
   /** Readers start at the cover; an author picks up at the newest page. */
   startAt: 'cover' | 'latest';
+  /** True once the story has its final page, which is then marked "The End". */
+  finished?: boolean;
   /** Rendered under the book, e.g. the author's choices for what happens next. */
   children?: ReactNode;
 };
@@ -71,6 +73,7 @@ export default function BookView({
   pending = null,
   paintingIds = [],
   startAt,
+  finished = false,
   children,
 }: Props) {
   const narrow = useMediaQuery('(max-width: 760px)');
@@ -105,6 +108,7 @@ export default function BookView({
         <div className={styles.text}>
           {scene.action && <p className={styles.action}>{scene.action}</p>}
           <p className={styles.narration}>{scene.narration}</p>
+          {finished && i === scenes.length - 1 && <p className={styles.theEnd}>The End</p>}
           <span className={styles.pageNumber}>{i + 1}</span>
         </div>
       ),
@@ -128,7 +132,7 @@ export default function BookView({
       });
     }
     return [cover, ...pages];
-  }, [title, scenes, pending, paintingIds]);
+  }, [title, scenes, pending, paintingIds, finished]);
 
   const last = spreads.length - 1;
   const [index, setIndex] = useState(startAt === 'latest' ? last : 0);

@@ -2,15 +2,19 @@
 
 import { getSupabase } from '@/lib/supabase/browser';
 import {
+  CHARACTER_COLUMNS,
   SCENE_COLUMNS,
   STORY_COLUMNS,
+  toCharacter,
   toScene,
   toStory,
+  type CharacterRow,
   type SceneRow,
   type StoryRow,
 } from '@/lib/story/rows';
 import type { StoryBible } from '@/lib/story/bible';
-import type { Scene, Story, TurnEvent } from '@/lib/story/types';
+import type { ArtStyle, ReadingLevel } from '@/lib/story/options';
+import type { Character, Scene, Story, TurnEvent } from '@/lib/story/types';
 
 /** A failed API call. `message` is written for the person using the app. */
 export class ApiError extends Error {
@@ -52,8 +56,30 @@ async function postJson<T>(path: string, body?: unknown, method = 'POST'): Promi
 
 // ── writes (all go through the server) ──────────────────────────────────────
 
-export const createStory = (setting: string) =>
-  postJson<{ id: string }>('/api/stories', { setting }).then((r) => r.id);
+export type NewStory = {
+  setting: string;
+  readingLevel: ReadingLevel;
+  artStyle: ArtStyle;
+  characterId: string | null;
+};
+
+export const createStory = (story: NewStory) =>
+  postJson<{ id: string }>('/api/stories', story).then((r) => r.id);
+
+export type PortraitDraft = { draftId: string; appearance: string; options: string[] };
+
+export const draftCharacter = (name: string, description: string) =>
+  postJson<PortraitDraft>('/api/characters/drafts', { name, description });
+
+export const saveCharacter = (input: {
+  name: string;
+  appearance: string;
+  draftId: string;
+  option: number;
+}) => postJson<{ character: Character }>('/api/characters', input).then((r) => r.character);
+
+export const deleteCharacter = (characterId: string) =>
+  postJson<{ ok: true }>(`/api/characters/${characterId}`, undefined, 'DELETE');
 
 export const setSharing = (storyId: string, isPublic: boolean) =>
   postJson<{ isPublic: boolean }>(`/api/stories/${storyId}`, { isPublic }, 'PATCH');
@@ -75,12 +101,14 @@ export const prepareClaim = () =>
 export const claimStories = (ticket: string) =>
   postJson<{ claimed: number }>('/api/claim', { ticket }).then((r) => r.claimed);
 
+export type TurnResult = { scene: Scene; bible: StoryBible; finished: boolean };
+
 /** Requests the next scene, calling `onDelta` with narration text as it streams in. */
 export async function takeTurn(
   storyId: string,
-  input: { action: string | null; expectedPosition: number },
+  input: { action: string | null; expectedPosition: number; ending?: boolean },
   onDelta: (text: string) => void,
-): Promise<{ scene: Scene; bible: StoryBible }> {
+): Promise<TurnResult> {
   const res = await authedFetch(`/api/stories/${storyId}/turns`, {
     method: 'POST',
     body: JSON.stringify(input),
@@ -90,14 +118,15 @@ export async function takeTurn(
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
-  let result: { scene: Scene; bible: StoryBible } | null = null;
+  let result: TurnResult | null = null;
 
   const handle = (line: string) => {
     if (!line.trim()) return;
     const event = JSON.parse(line) as TurnEvent;
     if (event.type === 'delta') onDelta(event.text);
-    else if (event.type === 'scene') result = { scene: event.scene, bible: event.bible };
-    else throw new ApiError(event.message.includes('moved on') ? 409 : 502, event.message);
+    else if (event.type === 'scene') {
+      result = { scene: event.scene, bible: event.bible, finished: event.finished };
+    } else throw new ApiError(event.message.includes('moved on') ? 409 : 502, event.message);
   };
 
   for (;;) {
@@ -146,4 +175,14 @@ export async function fetchMyStories(userId: string): Promise<Story[]> {
     .order('updated_at', { ascending: false });
   if (error) throw new ApiError(500, "Couldn't load your stories.");
   return ((data ?? []) as StoryRow[]).map(toStory);
+}
+
+export async function fetchMyCharacters(userId: string): Promise<Character[]> {
+  const { data, error } = await getSupabase()
+    .from('characters')
+    .select(CHARACTER_COLUMNS)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
+  if (error) throw new ApiError(500, "Couldn't load your characters.");
+  return ((data ?? []) as CharacterRow[]).map(toCharacter);
 }

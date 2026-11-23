@@ -77,6 +77,38 @@ see it as the **Journal** and the inventory under the illustration.
 Stories written before this existed start with an empty bible and fill it in as they
 continue.
 
+## Story options
+
+When a story starts the reader can choose three things, which then stay fixed for that story:
+
+- **Your character**: one of their saved characters, or "let the story decide".
+- **Reading level**: little readers (short, simple sentences), family, or confident readers.
+- **Art style**: watercolour, pen and ink, paper cut-out, soft pastel, pixel art or comic book.
+
+The wording for each level and style lives in `lib/story/options.ts`.
+
+## Characters
+
+On **My Characters** a reader describes who they want to be, in as much detail as they
+like. The narrator model condenses that into a short fixed look, the illustrator paints
+three portrait options, and the reader keeps one. Only the chosen portrait is stored;
+the others are deleted. A saved character can then be picked for any new story, where
+their look is fixed from the first page. Each reader can keep up to eight.
+
+One round of portraits costs three illustrations, so it has its own daily budget:
+`QUOTA_GUEST_PORTRAIT_ROUNDS_PER_DAY` (default 3), `QUOTA_MEMBER_PORTRAIT_ROUNDS_PER_DAY`
+(10) and `QUOTA_GLOBAL_PORTRAIT_ROUNDS_PER_DAY` (300).
+
+## Endings and printing
+
+After the second scene the author can choose **Bring the story to a close**: the narrator
+writes one final page and the story is then finished and cannot be added to. A story that
+reaches its 60-scene limit is closed the same way automatically.
+
+Every story has a print layout at `/story/<id>/print`, linked from the story screen. It
+uses the browser's own print dialog, where "Save as PDF" produces a file: a cover, then
+one page per scene.
+
 ## Updating an existing install
 
 Whenever you pull a new version, re-run `supabase/schema.sql` before deploying it. The

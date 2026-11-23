@@ -46,7 +46,8 @@
   align-items: center;
   margin-bottom: 3rem;
   position: relative;
-  z-index: 10;
+  /* Above the story grid, so the account menu can open over it. */
+  z-index: 20;
   flex-wrap: wrap;
   gap: 1rem;
 }

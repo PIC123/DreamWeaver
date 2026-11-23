@@ -45,6 +45,10 @@ alter table public.stories add column if not exists scene_count integer not null
 alter table public.stories add column if not exists is_public boolean not null default false;
 -- The story bible: established characters, places, carried items and a running summary.
 alter table public.stories add column if not exists bible jsonb not null default '{}'::jsonb;
+-- Choices made when a story starts, and whether its last page has been written.
+alter table public.stories add column if not exists reading_level text not null default 'family';
+alter table public.stories add column if not exists art_style text not null default 'watercolor';
+alter table public.stories add column if not exists finished boolean not null default false;
 -- A shared secret from an earlier design; it was readable by anyone, so remove it.
 alter table public.stories drop column if exists anon_token;
 
@@ -83,6 +87,18 @@ create table if not exists public.scenes (
   created_at timestamptz not null default now(),
   unique (story_id, position)
 );
+
+-- ── characters ──────────────────────────────────────────────────────────────
+-- A reader's saved characters: a name, a fixed look, and the portrait they chose.
+create table if not exists public.characters (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  name text not null,
+  appearance text not null,
+  portrait_url text,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_characters_user on public.characters (user_id, created_at);
 
 -- ── usage / quotas ──────────────────────────────────────────────────────────
 create table if not exists public.usage_events (
@@ -211,6 +227,7 @@ end $$;
 -- ── row level security ──────────────────────────────────────────────────────
 alter table public.stories enable row level security;
 alter table public.scenes enable row level security;
+alter table public.characters enable row level security;
 alter table public.usage_events enable row level security;
 alter table public.claim_tickets enable row level security;
 
@@ -221,7 +238,7 @@ begin
   for p in
     select policyname, tablename from pg_policies
     where schemaname = 'public'
-      and tablename in ('stories', 'scenes', 'usage_events', 'claim_tickets')
+      and tablename in ('stories', 'scenes', 'characters', 'usage_events', 'claim_tickets')
   loop
     execute format('drop policy %I on public.%I', p.policyname, p.tablename);
   end loop;
@@ -241,13 +258,17 @@ create policy scenes_read on public.scenes
     )
   );
 
+create policy characters_read on public.characters
+  for select
+  using (user_id = (select auth.uid()));
+
 -- Belt and braces: browsers get read access only, and none to bookkeeping tables.
-revoke insert, update, delete, truncate on public.stories, public.scenes from anon, authenticated;
-grant select on public.stories, public.scenes to anon, authenticated;
+revoke insert, update, delete, truncate on public.stories, public.scenes, public.characters from anon, authenticated;
+grant select on public.stories, public.scenes, public.characters to anon, authenticated;
 revoke all on public.usage_events, public.claim_tickets from anon, authenticated;
 revoke all on function public.consume_quota(uuid, text, integer, integer, interval) from public, anon, authenticated;
 grant execute on function public.consume_quota(uuid, text, integer, integer, interval) to service_role;
-grant all on public.stories, public.scenes, public.usage_events, public.claim_tickets to service_role;
+grant all on public.stories, public.scenes, public.characters, public.usage_events, public.claim_tickets to service_role;
 
 -- ── storage ─────────────────────────────────────────────────────────────────
 -- Public bucket: anyone can view an illustration by URL, only the server writes.

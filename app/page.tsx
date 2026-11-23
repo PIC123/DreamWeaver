@@ -1,12 +1,21 @@
 'use client';
 
 import { Suspense, useEffect, useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import AccountMenu from '@/components/ui/AccountMenu';
 import Starfield from '@/components/ui/Starfield';
-import { ApiError, createStory, randomSetting } from '@/lib/api';
-import { LIMITS } from '@/lib/story/types';
+import { ApiError, createStory, fetchMyCharacters, randomSetting } from '@/lib/api';
+import {
+  ART_STYLES,
+  DEFAULT_ART_STYLE,
+  DEFAULT_READING_LEVEL,
+  READING_LEVELS,
+  type ArtStyle,
+  type ReadingLevel,
+} from '@/lib/story/options';
+import { LIMITS, type Character } from '@/lib/story/types';
 
 export default function LandingPage() {
   return (
@@ -27,10 +36,15 @@ function storyIdFrom(input: string): string | null {
 function Landing() {
   const router = useRouter();
   const createNew = useSearchParams().get('createNew') === '1';
-  const { user, isGuest, loading, problem } = useAuth();
+  const { user, isGuest, loading, problem, claimVersion } = useAuth();
+  const userId = user?.id ?? null;
 
   const [setting, setSetting] = useState('');
   const [link, setLink] = useState('');
+  const [readingLevel, setReadingLevel] = useState<ReadingLevel>(DEFAULT_READING_LEVEL);
+  const [artStyle, setArtStyle] = useState<ArtStyle>(DEFAULT_ART_STYLE);
+  const [characters, setCharacters] = useState<Character[]>([]);
+  const [characterId, setCharacterId] = useState('');
   const [starting, setStarting] = useState(false);
   const [rolling, setRolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +53,22 @@ function Landing() {
   useEffect(() => {
     if (!loading && user && !isGuest && !createNew) router.replace('/dashboard');
   }, [loading, user, isGuest, createNew, router]);
+
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    fetchMyCharacters(userId).then(
+      (list) => {
+        if (!cancelled) setCharacters(list);
+      },
+      () => {
+        /* the picker simply stays empty */
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, claimVersion]);
 
   const ready = !loading && !!user;
 
@@ -50,7 +80,12 @@ function Landing() {
       if (!ready) return;
       setStarting(true);
       try {
-        const id = await createStory(setting);
+        const id = await createStory({
+          setting,
+          readingLevel,
+          artStyle,
+          characterId: characters.some((c) => c.id === characterId) ? characterId : null,
+        });
         router.push(`/story/${id}`);
       } catch (err) {
         setError(
@@ -131,6 +166,63 @@ function Landing() {
               >
                 {rolling ? '✨' : '🎲'}
               </button>
+            </div>
+          </div>
+
+          <div className="story-options">
+            <div className="story-option">
+              <label htmlFor="character-select">Your character</label>
+              <select
+                id="character-select"
+                className="magical-select"
+                value={characterId}
+                onChange={(e) => setCharacterId(e.target.value)}
+                disabled={starting}
+              >
+                <option value="">Let the story decide</option>
+                {characters.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <Link href="/characters" className="story-option-link">
+                {characters.length ? 'Manage characters' : '＋ Create a character'}
+              </Link>
+            </div>
+
+            <div className="story-option">
+              <label htmlFor="level-select">Reading level</label>
+              <select
+                id="level-select"
+                className="magical-select"
+                value={readingLevel}
+                onChange={(e) => setReadingLevel(e.target.value as ReadingLevel)}
+                disabled={starting}
+              >
+                {Object.entries(READING_LEVELS).map(([key, level]) => (
+                  <option key={key} value={key}>
+                    {level.label}: {level.hint.toLowerCase()}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="story-option">
+              <label htmlFor="style-select">Art style</label>
+              <select
+                id="style-select"
+                className="magical-select"
+                value={artStyle}
+                onChange={(e) => setArtStyle(e.target.value as ArtStyle)}
+                disabled={starting}
+              >
+                {Object.entries(ART_STYLES).map(([key, style]) => (
+                  <option key={key} value={key}>
+                    {style.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

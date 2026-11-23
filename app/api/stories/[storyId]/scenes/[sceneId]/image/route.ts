@@ -5,6 +5,7 @@ import { HttpError, isUuid, route } from '@/lib/server/http';
 import { IMAGE_BUCKET, loadOwnedStory } from '@/lib/server/stories';
 import { SCENE_COLUMNS, type SceneRow } from '@/lib/story/rows';
 import { getAdmin } from '@/lib/supabase/server';
+import { DEFAULT_ART_STYLE, isArtStyle } from '@/lib/story/options';
 import { buildImagePrompt } from '@/lib/story/prompt';
 import { LIMITS } from '@/lib/story/types';
 
@@ -55,7 +56,13 @@ export const POST = route(async (req: Request, ctx: Ctx) => {
 
   let bytes: Buffer;
   try {
-    bytes = await paintScene(buildImagePrompt(story.setting ?? '', scene.image_prompt));
+    bytes = await paintScene(
+      buildImagePrompt(
+        story.setting ?? '',
+        scene.image_prompt,
+        isArtStyle(story.art_style) ? story.art_style : DEFAULT_ART_STYLE,
+      ),
+    );
   } catch (err) {
     console.error('paint failed:', err);
     throw new HttpError(502, "The illustrator couldn't paint this scene.");

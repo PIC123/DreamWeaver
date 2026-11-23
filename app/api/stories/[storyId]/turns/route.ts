@@ -7,6 +7,7 @@ import { SCENE_COLUMNS, toScene, type SceneRow } from '@/lib/story/rows';
 import { getAdmin } from '@/lib/supabase/server';
 import { mergeBible, normalizeBible } from '@/lib/story/bible';
 import { buildMessages, buildSceneBrief } from '@/lib/story/prompt';
+import { DEFAULT_READING_LEVEL, isReadingLevel } from '@/lib/story/options';
 import { LIMITS, type TurnEvent } from '@/lib/story/types';
 
 export const maxDuration = 60;
@@ -24,7 +25,11 @@ export const POST = route(async (req: Request, ctx: Ctx) => {
   const story = await loadOwnedStory(storyId, user);
   const scenes = await loadScenes(story.id);
 
-  const body = await readJson<{ action?: unknown; expectedPosition?: unknown }>(req);
+  const body = await readJson<{
+    action?: unknown;
+    expectedPosition?: unknown;
+    ending?: unknown;
+  }>(req);
   const position = scenes.length;
 
   // The client says which scene it thinks comes next, so a double submit or a
@@ -32,6 +37,7 @@ export const POST = route(async (req: Request, ctx: Ctx) => {
   if (typeof body.expectedPosition === 'number' && body.expectedPosition !== position) {
     throw new HttpError(409, 'This story has moved on. Reload to catch up.');
   }
+  if (story.finished) throw new HttpError(409, 'This story has reached its ending.');
   if (position >= LIMITS.maxScenesPerStory) {
     throw new HttpError(
       409,
@@ -39,8 +45,12 @@ export const POST = route(async (req: Request, ctx: Ctx) => {
     );
   }
 
+  // The reader can ask for the last page; the final allowed scene is always one.
+  const ending =
+    position > 0 && (body.ending === true || position === LIMITS.maxScenesPerStory - 1);
+
   let action: string | null = null;
-  if (position > 0) {
+  if (position > 0 && !ending) {
     action = typeof body.action === 'string' ? body.action.replace(/\s+/g, ' ').trim() : '';
     if (!action) throw new HttpError(400, 'Say what you want to do next.');
     if (action.length > LIMITS.actionMaxLength) {
@@ -52,7 +62,14 @@ export const POST = route(async (req: Request, ctx: Ctx) => {
   await spendQuota(user, 'turn');
 
   const bible = normalizeBible(story.bible);
-  const messages = buildMessages(story.setting ?? '', scenes, action, bible);
+  const messages = buildMessages({
+    setting: story.setting ?? '',
+    scenes,
+    action,
+    bible,
+    level: isReadingLevel(story.reading_level) ? story.reading_level : DEFAULT_READING_LEVEL,
+    ending,
+  });
   const encoder = new TextEncoder();
 
   // If the reader closes the tab mid-turn we still finish and save the scene:
@@ -84,7 +101,7 @@ export const POST = route(async (req: Request, ctx: Ctx) => {
             position,
             action,
             narration: turn.narration,
-            choices: turn.choices,
+            choices: ending ? [] : turn.choices,
             image_prompt: buildSceneBrief(nextBible, turn),
           })
           .select(SCENE_COLUMNS)
@@ -99,10 +116,15 @@ export const POST = route(async (req: Request, ctx: Ctx) => {
         } else {
           const { error: storyError } = await admin
             .from('stories')
-            .update({ scene_count: position + 1, bible: nextBible })
+            .update({ scene_count: position + 1, bible: nextBible, finished: ending })
             .eq('id', story.id);
           if (storyError) console.error('update story after turn failed:', storyError.message);
-          send({ type: 'scene', scene: toScene(data as SceneRow), bible: nextBible });
+          send({
+            type: 'scene',
+            scene: toScene(data as SceneRow),
+            bible: nextBible,
+            finished: ending,
+          });
         }
       } catch (err) {
         console.error('turn failed:', err);

@@ -241,6 +241,20 @@ export function startSupabase({ port, postgrestPort, jwtSecret, serviceKey }) {
       );
     }
 
+    if (path === '/object/move' && req.method === 'POST') {
+      const { bucketId, sourceKey, destinationKey } = JSON.parse((await readBody(req)).toString());
+      const object = objects.get(`${bucketId}/${sourceKey}`);
+      if (!object)
+        return sendJson(res, 404, {
+          statusCode: '404',
+          error: 'not_found',
+          message: 'Object not found',
+        });
+      objects.delete(`${bucketId}/${sourceKey}`);
+      objects.set(`${bucketId}/${destinationKey}`, object);
+      return sendJson(res, 200, { message: 'Successfully moved' });
+    }
+
     const bucketMatch = /^\/object\/([^/]+)$/.exec(path);
     if (bucketMatch && req.method === 'DELETE') {
       const { prefixes = [] } = JSON.parse((await readBody(req)).toString() || '{}');
@@ -357,7 +371,16 @@ export function startOpenAI({ port }) {
               {
                 index: 0,
                 finish_reason: 'stop',
-                message: { role: 'assistant', content: 'A clockwork garden beneath a paper moon' },
+                message: {
+                  role: 'assistant',
+                  // The character creator asks for a tidy look; anything else is a setting idea.
+                  content: body.messages[0].content.includes('character sheet')
+                    ? `Distilled look: ${lastUser.split('Description: ')[1] ?? lastUser}`.slice(
+                        0,
+                        300,
+                      )
+                    : 'A clockwork garden beneath a paper moon',
+                },
               },
             ],
           });
@@ -370,6 +393,7 @@ export function startOpenAI({ port }) {
 
         const sceneNumber = body.messages.filter((m) => m.role === 'assistant').length + 1;
         const isOpening = lastUser.startsWith('Begin the story');
+        const isEnding = lastUser.startsWith('(The reader has decided');
         // Quotes, a newline and an emoji exercise the streaming JSON reader.
         // The bible updates let tests check consistency: the opening introduces a
         // cast, "Look around" finds a key, "Wait quietly" loses it, and every later
@@ -377,7 +401,9 @@ export function startOpenAI({ port }) {
         const turn = JSON.stringify({
           narration: isOpening
             ? `Scene ${sceneNumber}: the adventure begins. A sign reads "Welcome, traveller" \u2728\nThe path forks ahead.`
-            : `Scene ${sceneNumber}: you chose to ${lastUser}. The story "continues" \u2728\nSomething stirs nearby.`,
+            : isEnding
+              ? `Scene ${sceneNumber}: and so the adventure came to a gentle close.`
+              : `Scene ${sceneNumber}: you chose to ${lastUser}. The story "continues" \u2728\nSomething stirs nearby.`,
           choices: [
             `Go north (${sceneNumber})`,
             `Look around (${sceneNumber})`,

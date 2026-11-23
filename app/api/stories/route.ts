@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/server/auth';
 import { assertAllowed } from '@/lib/server/ai';
-import { HttpError, readJson, route } from '@/lib/server/http';
+import { HttpError, isUuid, readJson, route } from '@/lib/server/http';
 import { getAdmin } from '@/lib/supabase/server';
+import { EMPTY_BIBLE, HERO_NAME, type StoryBible } from '@/lib/story/bible';
+import {
+  DEFAULT_ART_STYLE,
+  DEFAULT_READING_LEVEL,
+  isArtStyle,
+  isReadingLevel,
+} from '@/lib/story/options';
 import { LIMITS } from '@/lib/story/types';
 
 export const maxDuration = 30;
@@ -12,7 +19,12 @@ const MAX_STORIES_PER_USER = 200;
 /** Creates an empty story. The opening scene is written by the first turn. */
 export const POST = route(async (req: Request) => {
   const user = await requireUser(req);
-  const body = await readJson<{ setting?: unknown }>(req);
+  const body = await readJson<{
+    setting?: unknown;
+    readingLevel?: unknown;
+    artStyle?: unknown;
+    characterId?: unknown;
+  }>(req);
   const setting = typeof body.setting === 'string' ? body.setting.replace(/\s+/g, ' ').trim() : '';
 
   if (!setting) throw new HttpError(400, 'Tell us where your story takes place.');
@@ -31,9 +43,41 @@ export const POST = route(async (req: Request) => {
     throw new HttpError(409, 'Your bookshelf is full. Delete a story to make room for a new one.');
   }
 
+  // A saved character steps into the story with their look already fixed.
+  let bible: StoryBible = EMPTY_BIBLE;
+  if (body.characterId !== undefined && body.characterId !== null) {
+    if (typeof body.characterId !== 'string' || !isUuid(body.characterId)) {
+      throw new HttpError(400, 'Unknown character.');
+    }
+    const { data: character, error: characterError } = await admin
+      .from('characters')
+      .select('name, appearance')
+      .eq('id', body.characterId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (characterError) throw new Error(`load character failed: ${characterError.message}`);
+    if (!character) throw new HttpError(400, 'Unknown character.');
+    bible = {
+      ...EMPTY_BIBLE,
+      characters: [
+        {
+          name: HERO_NAME,
+          role: `named ${character.name as string}`,
+          appearance: character.appearance as string,
+        },
+      ],
+    };
+  }
+
   const { data, error } = await admin
     .from('stories')
-    .insert({ user_id: user.id, setting })
+    .insert({
+      user_id: user.id,
+      setting,
+      bible,
+      reading_level: isReadingLevel(body.readingLevel) ? body.readingLevel : DEFAULT_READING_LEVEL,
+      art_style: isArtStyle(body.artStyle) ? body.artStyle : DEFAULT_ART_STYLE,
+    })
     .select('id')
     .single();
   if (error) throw new Error(`create story failed: ${error.message}`);

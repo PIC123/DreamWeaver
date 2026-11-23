@@ -60,5 +60,9 @@ export const serverEnv = {
     globalTurns: readInt('QUOTA_GLOBAL_TURNS_PER_DAY', 1500),
     userSettings: readInt('QUOTA_SETTINGS_PER_DAY', 40),
     globalSettings: readInt('QUOTA_GLOBAL_SETTINGS_PER_DAY', 3000),
+    // One "portrait round" paints a set of options in the character creator.
+    guestPortraits: readInt('QUOTA_GUEST_PORTRAIT_ROUNDS_PER_DAY', 3),
+    memberPortraits: readInt('QUOTA_MEMBER_PORTRAIT_ROUNDS_PER_DAY', 10),
+    globalPortraits: readInt('QUOTA_GLOBAL_PORTRAIT_ROUNDS_PER_DAY', 300),
   },
 };

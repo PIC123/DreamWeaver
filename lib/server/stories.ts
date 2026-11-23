@@ -40,3 +40,18 @@ export async function deleteStoryImages(storyId: string): Promise<void> {
   const { error: removeError } = await bucket.remove(files.map((f) => `${storyId}/${f.name}`));
   if (removeError) throw new Error(`remove images failed: ${removeError.message}`);
 }
+
+export const draftFolder = (userId: string) => `characters/drafts/${userId}`;
+export const portraitPath = (characterId: string) => `characters/${characterId}.webp`;
+
+/** Removes any unchosen portrait options a user has left behind. */
+export async function clearPortraitDrafts(userId: string): Promise<void> {
+  const bucket = getAdmin().storage.from(IMAGE_BUCKET);
+  const { data: files, error } = await bucket.list(draftFolder(userId), { limit: 100 });
+  if (error) throw new Error(`list drafts failed: ${error.message}`);
+  if (!files?.length) return;
+  const { error: removeError } = await bucket.remove(
+    files.map((f) => `${draftFolder(userId)}/${f.name}`),
+  );
+  if (removeError) throw new Error(`remove drafts failed: ${removeError.message}`);
+}

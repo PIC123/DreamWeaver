@@ -1,4 +1,5 @@
 import type { StoryBible } from './bible';
+import type { ArtStyle, ReadingLevel } from './options';
 
 /** One beat of a story: what the reader did, what happened, and its picture. */
 export type Scene = {
@@ -22,6 +23,19 @@ export type Story = {
   updatedAt: string;
   /** Established characters, places, items and the story so far. */
   bible: StoryBible;
+  readingLevel: ReadingLevel;
+  artStyle: ArtStyle;
+  /** True once the narrator has written the final page. */
+  finished: boolean;
+};
+
+/** A reader's saved character, ready to step into any story. */
+export type Character = {
+  id: string;
+  name: string;
+  /** The fixed look the illustrator draws from. */
+  appearance: string;
+  portraitUrl: string | null;
 };
 
 /** What the language model returns for each turn. */
@@ -34,7 +48,7 @@ export type Turn = {
 /** Lines of the newline-delimited JSON stream from POST /api/stories/:id/turns. */
 export type TurnEvent =
   | { type: 'delta'; text: string }
-  | { type: 'scene'; scene: Scene; bible: StoryBible }
+  | { type: 'scene'; scene: Scene; bible: StoryBible; finished: boolean }
   | { type: 'error'; message: string };
 
 export const LIMITS = {

@@ -222,20 +222,23 @@
   font-size: 4rem;
   font-weight: 300;
   margin-bottom: 0.5rem;
-  background: linear-gradient(45deg, #fff, #e0b3ff, #b794f6, #fff);
-  background-size: 200% 200%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shimmer 4s ease-in-out infinite;
   letter-spacing: 0.1em;
-  text-shadow: 0 0 30px rgba(183, 148, 246, 0.5);
+  filter: drop-shadow(0 0 18px rgba(183, 148, 246, 0.55));
 }
 
 .title-word {
   display: inline-block;
   margin: 0 0.2em;
-  animation: floatWord 3s ease-in-out infinite;
+  /* The gradient is clipped to each word: clipping it on the heading does not
+     reach inline-block children, which left the title invisible. */
+  background: linear-gradient(45deg, #fff, #e0b3ff, #b794f6, #fff);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation:
+    floatWord 3s ease-in-out infinite,
+    shimmer 4s ease-in-out infinite;
 }
 
 .title-word:nth-child(2) {
@@ -712,4 +715,94 @@
 .magical-button:disabled {
   opacity: 0.7;
   cursor: wait;
+}
+
+/* Story options: character, reading level, art style */
+.landing-container {
+  padding: 5.5rem 0 3rem;
+}
+
+.story-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.story-option label {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: #e0b3ff;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  font-weight: 300;
+}
+
+.magical-select {
+  width: 100%;
+  padding: 0.65rem 0.7rem;
+  background: rgba(15, 12, 41, 0.6);
+  border: 1px solid rgba(183, 148, 246, 0.3);
+  border-radius: 10px;
+  color: #fff;
+  font-family: Georgia, 'Times New Roman', serif;
+  /* 16px stops iOS zooming the page when the field is focused. */
+  font-size: 1rem;
+  outline: none;
+}
+
+.magical-select:focus {
+  border-color: #b794f6;
+  box-shadow: 0 0 14px rgba(183, 148, 246, 0.4);
+}
+
+.magical-select option {
+  background: #1a1640;
+  color: #fff;
+}
+
+.story-option-link {
+  display: inline-block;
+  margin-top: 0.35rem;
+  color: #c7b8ea;
+  font-size: 0.78rem;
+}
+
+.story-option-link:hover {
+  color: #fff;
+}
+
+@media (max-width: 560px) {
+  .story-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Keep the card a steady width whatever its contents. */
+.input-container {
+  box-sizing: border-box;
+  width: min(36rem, calc(100vw - 2rem));
+  min-width: 0;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .auth-header {
+    left: 0.75rem;
+    right: 0.75rem;
+    top: 0.9rem;
+  }
+
+  .auth-buttons {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.4rem;
+  }
+
+  .auth-header-button {
+    padding: 0.45rem 0.8rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
 }

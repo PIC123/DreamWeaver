@@ -68,25 +68,51 @@ export default function StoryView({ story: s }: Props) {
     void s.takeTurn(action);
   };
 
-  const composer = (placeholder?: string) => (
-    <>
-      {choices.length > 0 && (
-        <div className={styles.choices} aria-label="Suggested actions">
-          {choices.map((choice) => (
-            <button
-              key={choice}
-              type="button"
-              className={styles.choice}
-              onClick={() => act(choice)}
-            >
-              {choice}
-            </button>
-          ))}
+  const endStory = () => {
+    if (!window.confirm('End the story here? The narrator will write one final page.')) return;
+    setPickedSceneId(null);
+    void s.takeTurn(null, { ending: true });
+  };
+
+  const printHref = `/story/${story.id}/print`;
+
+  const composer = (placeholder?: string) =>
+    story.finished ? (
+      <div className={styles.theEnd}>
+        <p className={styles.theEndTitle}>✨ The End ✨</p>
+        <div className={styles.theEndActions}>
+          <Link href={printHref} target="_blank" className={styles.ghostButton}>
+            🖨️ Print or save as PDF
+          </Link>
+          <Link href="/?createNew=1" className={styles.primaryLink}>
+            Start a new story
+          </Link>
         </div>
-      )}
-      <ActionInput disabled={s.busy || !latest} onSubmit={act} placeholder={placeholder} />
-    </>
-  );
+      </div>
+    ) : (
+      <>
+        {choices.length > 0 && (
+          <div className={styles.choices} aria-label="Suggested actions">
+            {choices.map((choice) => (
+              <button
+                key={choice}
+                type="button"
+                className={styles.choice}
+                onClick={() => act(choice)}
+              >
+                {choice}
+              </button>
+            ))}
+          </div>
+        )}
+        <ActionInput disabled={s.busy || !latest} onSubmit={act} placeholder={placeholder} />
+        {s.scenes.length >= 2 && !s.busy && (
+          <button type="button" className={styles.endButton} onClick={endStory}>
+            🌙 Bring the story to a close
+          </button>
+        )}
+      </>
+    );
 
   return (
     <div className={styles.shell}>
@@ -113,6 +139,15 @@ export default function StoryView({ story: s }: Props) {
               💾 Keep my stories
             </button>
           )}
+          <Link
+            href={printHref}
+            target="_blank"
+            className={styles.ghostButton}
+            aria-label="Print or save as PDF"
+            title="Print or save as PDF"
+          >
+            🖨️
+          </Link>
           <button type="button" className={styles.ghostButton} onClick={() => setJournalOpen(true)}>
             📔 Journal
           </button>
@@ -215,9 +250,10 @@ export default function StoryView({ story: s }: Props) {
             pending={s.pending}
             paintingIds={s.painting}
             startAt="latest"
+            finished={story.finished}
           >
             <div className={styles.bookComposer}>
-              <h2>What happens next?</h2>
+              {!story.finished && <h2>What happens next?</h2>}
               {composer('Or write your own next step…')}
             </div>
           </BookView>

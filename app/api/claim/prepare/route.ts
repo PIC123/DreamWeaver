@@ -12,12 +12,17 @@ export const POST = route(async (req: Request) => {
   if (!user.isGuest) return NextResponse.json({ ticket: null });
 
   const admin = getAdmin();
-  const { count, error: countError } = await admin
-    .from('stories')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id);
-  if (countError) throw new Error(`count stories failed: ${countError.message}`);
-  if (!count) return NextResponse.json({ ticket: null });
+  // Nothing to carry over unless the guest has written a story or made a character.
+  let owned = 0;
+  for (const table of ['stories', 'characters'] as const) {
+    const { count, error: countError } = await admin
+      .from(table)
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+    if (countError) throw new Error(`count ${table} failed: ${countError.message}`);
+    owned += count ?? 0;
+  }
+  if (owned === 0) return NextResponse.json({ ticket: null });
 
   const { data, error } = await admin
     .from('claim_tickets')

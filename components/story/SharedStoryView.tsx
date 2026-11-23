@@ -16,11 +16,14 @@ export default function SharedStoryView({ story, scenes }: { story: Story; scene
         <span className={styles.sharedTag}>A shared story · read only</span>
       </header>
 
-      <BookView title={story.setting} scenes={scenes} startAt="cover">
+      <BookView title={story.setting} scenes={scenes} startAt="cover" finished={story.finished}>
         <div className={styles.bookComposer}>
           <h2>Want an adventure of your own?</h2>
           <Link href="/?createNew=1" className={styles.primaryLink}>
             Write your own story ✨
+          </Link>
+          <Link href={`/story/${story.id}/print`} target="_blank" className={styles.ghostButton}>
+            🖨️ Print or save as PDF
           </Link>
         </div>
       </BookView>

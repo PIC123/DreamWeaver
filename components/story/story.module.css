@@ -655,6 +655,49 @@
   box-shadow: 0 0 18px rgba(183, 148, 246, 0.35);
 }
 
+.endButton {
+  align-self: flex-start;
+  padding: 0.3rem 0.2rem;
+  background: none;
+  border: none;
+  color: #c7b8ea;
+  font-family: inherit;
+  font-size: 0.88rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.endButton:hover {
+  color: #fff;
+}
+
+.theEnd {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1.1rem;
+  background: rgba(15, 12, 41, 0.55);
+  border: 1px solid rgba(255, 214, 140, 0.4);
+  border-radius: 16px;
+}
+
+.theEndTitle {
+  margin: 0;
+  color: #ffd68c;
+  font-size: 1.4rem;
+  font-style: italic;
+  letter-spacing: 0.06em;
+}
+
+.theEndActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
 /* ── sharing ──────────────────────────────────────────────────────────────── */
 .share {
   position: relative;

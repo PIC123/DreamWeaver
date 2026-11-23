@@ -28,7 +28,7 @@ type Action =
   | { type: 'failed'; message: string }
   | { type: 'turn-started'; action: string | null }
   | { type: 'turn-delta'; text: string }
-  | { type: 'turn-finished'; scene: Scene; bible: StoryBible }
+  | { type: 'turn-finished'; scene: Scene; bible: StoryBible; finished?: boolean }
   | { type: 'turn-failed'; message: string }
   | { type: 'paint-started'; sceneId: string }
   | { type: 'paint-finished'; sceneId: string; imageUrl: string }
@@ -65,7 +65,13 @@ export function storyReducer(state: StoryState, action: Action): StoryState {
       return {
         ...state,
         pending: null,
-        story: state.story ? { ...state.story, bible: action.bible } : state.story,
+        story: state.story
+          ? {
+              ...state.story,
+              bible: action.bible,
+              finished: state.story.finished || action.finished === true,
+            }
+          : state.story,
         newItems: action.bible.items
           .map((item) => item.name)
           .filter((name) => !state.story?.bible.items.some((had) => sameName(had.name, name))),
@@ -181,17 +187,17 @@ export function useStory(storyId: string) {
   );
 
   const takeTurn = useCallback(
-    async (action: string | null) => {
+    async (action: string | null, { ending = false } = {}) => {
       if (turnInFlight.current) return;
       turnInFlight.current = true;
       dispatch({ type: 'turn-started', action });
       try {
-        const { scene, bible } = await api.takeTurn(
+        const { scene, bible, finished } = await api.takeTurn(
           storyId,
-          { action, expectedPosition: scenesRef.current.length },
+          { action, expectedPosition: scenesRef.current.length, ending },
           (text) => dispatch({ type: 'turn-delta', text }),
         );
-        dispatch({ type: 'turn-finished', scene, bible });
+        dispatch({ type: 'turn-finished', scene, bible, finished });
         if (scene.canPaint) {
           autoPainted.current.add(scene.id);
           void paint(scene);

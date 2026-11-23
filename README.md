@@ -22,12 +22,15 @@ app/
   page.tsx                      landing: start a story
   dashboard/                    your bookshelf
   story/[storyId]/              play a story, or read a shared one
+  story/[storyId]/print/        print or save a story as a PDF
+  characters/                   create and manage your characters
   auth/reset/                   password reset landing page
   api/
     stories/                    POST   create a story
     stories/[id]/               PATCH  share on/off · DELETE (also removes pictures)
     stories/[id]/turns/         POST   write the next scene (streams the narration)
     stories/[id]/scenes/[id]/image/   POST   paint a scene's illustration
+    characters/                 POST   paint portrait options, keep one · DELETE
     random-setting/             POST   "surprise me" setting
     claim/                      POST   move guest stories into an account
 components/                     auth, story screens, the page-turning book
