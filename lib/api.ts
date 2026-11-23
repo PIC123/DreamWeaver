@@ -66,10 +66,17 @@ export type NewStory = {
 export const createStory = (story: NewStory) =>
   postJson<{ id: string }>('/api/stories', story).then((r) => r.id);
 
-export type PortraitDraft = { draftId: string; appearance: string; options: string[] };
+/** An open set of portrait options: `options` is how many there are to paint. */
+export type PortraitDraft = { draftId: string; appearance: string; options: number };
 
 export const draftCharacter = (name: string, description: string) =>
   postJson<PortraitDraft>('/api/characters/drafts', { name, description });
+
+/** Paints one option of an open set and returns its picture. Safe to retry. */
+export const paintPortrait = (draftId: string, option: number) =>
+  postJson<{ url: string }>(`/api/characters/drafts/${draftId}/portraits`, { option }).then(
+    (r) => r.url,
+  );
 
 export const saveCharacter = (input: {
   name: string;

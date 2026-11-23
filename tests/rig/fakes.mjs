@@ -227,6 +227,19 @@ export function startSupabase({ port, postgrestPort, jwtSecret, serviceKey }) {
         message: 'rig: service role required',
       });
 
+    const readMatch = /^\/object\/(?!list\/|move$)(.+)$/.exec(path);
+    if (readMatch && req.method === 'GET') {
+      const object = objects.get(decodeURIComponent(readMatch[1]));
+      if (!object)
+        return sendJson(res, 404, {
+          statusCode: '404',
+          error: 'not_found',
+          message: 'Object not found',
+        });
+      res.writeHead(200, { 'content-type': object.contentType, ...CORS });
+      return res.end(object.bytes);
+    }
+
     const listMatch = /^\/object\/list\/([^/]+)$/.exec(path);
     if (listMatch && req.method === 'POST') {
       const { prefix = '' } = JSON.parse((await readBody(req)).toString() || '{}');
@@ -347,6 +360,12 @@ export function startOpenAI({ port }) {
       }
 
       if (url.pathname === '/v1/images/generations') {
+        if (body.prompt.includes('BUSYIMG') && !failedOnce.has(body.prompt)) {
+          failedOnce.add(body.prompt);
+          return sendJson(res, 429, {
+            error: { message: 'rig: rate limited', type: 'rate_limit_error' },
+          });
+        }
         if (body.prompt.includes('FAILIMG') && !failedOnce.has(body.prompt)) {
           failedOnce.add(body.prompt);
           return sendJson(res, 400, {

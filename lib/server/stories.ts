@@ -42,6 +42,11 @@ export async function deleteStoryImages(storyId: string): Promise<void> {
 }
 
 export const draftFolder = (userId: string) => `characters/drafts/${userId}`;
+/** A small note kept with a set of options: the look they are all painted from. */
+export const draftBriefPath = (userId: string, draftId: string) =>
+  `${draftFolder(userId)}/${draftId}.txt`;
+export const draftOptionPath = (userId: string, draftId: string, option: number) =>
+  `${draftFolder(userId)}/${draftId}-${option}.webp`;
 export const portraitPath = (characterId: string) => `characters/${characterId}.webp`;
 
 /** Removes any unchosen portrait options a user has left behind. */

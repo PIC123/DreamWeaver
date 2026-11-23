@@ -3,7 +3,12 @@ import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/server/auth';
 import { assertAllowed } from '@/lib/server/ai';
 import { HttpError, isUuid, readJson, route } from '@/lib/server/http';
-import { IMAGE_BUCKET, clearPortraitDrafts, draftFolder, portraitPath } from '@/lib/server/stories';
+import {
+  IMAGE_BUCKET,
+  clearPortraitDrafts,
+  draftOptionPath,
+  portraitPath,
+} from '@/lib/server/stories';
 import { getAdmin } from '@/lib/supabase/server';
 import { CHARACTER_LIMITS } from '@/lib/story/options';
 import { CHARACTER_COLUMNS, toCharacter, type CharacterRow } from '@/lib/story/rows';
@@ -57,7 +62,7 @@ export const POST = route(async (req: Request) => {
   // The portrait is found from the reader's own draft folder, never from a URL they send.
   const id = randomUUID();
   const bucket = admin.storage.from(IMAGE_BUCKET);
-  const source = `${draftFolder(user.id)}/${body.draftId}-${option}.webp`;
+  const source = draftOptionPath(user.id, body.draftId, option);
   const { error: moveError } = await bucket.move(source, portraitPath(id));
   if (moveError) {
     throw new HttpError(409, 'Those portraits have expired. Paint a new set and choose again.');

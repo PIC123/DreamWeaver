@@ -91,7 +91,8 @@ The wording for each level and style lives in `lib/story/options.ts`.
 
 On **My Characters** a reader describes who they want to be, in as much detail as they
 like. The narrator model condenses that into a short fixed look, the illustrator paints
-three portrait options, and the reader keeps one. Only the chosen portrait is stored;
+three portrait options one at a time (each can be retried on its own), and the reader
+keeps one. Only the chosen portrait is stored;
 the others are deleted. A saved character can then be picked for any new story, where
 their look is fixed from the first page. Each reader can keep up to eight.
 

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/server/auth';
-import { paintScene } from '@/lib/server/ai';
+import { paintFailureMessage, paintScene } from '@/lib/server/ai';
 import { HttpError, isUuid, route } from '@/lib/server/http';
 import { IMAGE_BUCKET, loadOwnedStory } from '@/lib/server/stories';
 import { SCENE_COLUMNS, type SceneRow } from '@/lib/story/rows';
@@ -65,7 +65,10 @@ export const POST = route(async (req: Request, ctx: Ctx) => {
     );
   } catch (err) {
     console.error('paint failed:', err);
-    throw new HttpError(502, "The illustrator couldn't paint this scene.");
+    throw new HttpError(
+      502,
+      paintFailureMessage(err, "The illustrator couldn't paint this scene."),
+    );
   }
 
   const path = `${story.id}/${scene.id}.webp`;

@@ -68,6 +68,28 @@ export async function streamTurn(
   return parseTurn(raw);
 }
 
+/**
+ * Explains a failed illustration in the reader's terms. The real error still
+ * goes to the server log; this only picks which honest sentence to show.
+ */
+export function paintFailureMessage(err: unknown, fallback: string): string {
+  const e = err as { status?: number; code?: unknown; message?: unknown };
+  const detail = `${String(e?.code ?? '')} ${String(e?.message ?? '')}`;
+  if (err instanceof OpenAI.APIConnectionTimeoutError || /timed? ?out/i.test(detail)) {
+    return 'The illustrator took too long this time. Please try again.';
+  }
+  if (e?.status === 429) {
+    return 'The illustrator is very busy right now. Wait a minute, then try again.';
+  }
+  if (e?.status === 400 && /moderation|safety|policy/i.test(detail)) {
+    return "The illustrator wasn't comfortable painting that. Try describing it a little differently.";
+  }
+  if (e?.status === 401 || e?.status === 403 || e?.status === 404) {
+    return 'The illustrator is not set up correctly: the image model or API key was rejected. The server log has the details.';
+  }
+  return fallback;
+}
+
 /** Paints one illustration and returns it as WebP bytes. */
 export async function paintScene(prompt: string): Promise<Buffer> {
   const res = await openai().images.generate(

@@ -172,3 +172,27 @@ test('portraits are still painted when the description write-up comes back empty
     'EMPTYLOOK a tall man with messy brown hair, glasses and a green flannel shirt',
   );
 });
+
+test('a portrait that fails can be retried on its own, and says why it failed', async ({
+  page,
+}) => {
+  await page.goto('/characters');
+  await page.getByLabel('Name').fill('Bram');
+  await page
+    .getByLabel('What do they look like?')
+    .fill(`BUSYIMG a cheerful baker with flour on his apron ${Date.now()}`);
+  await page.getByRole('button', { name: /Paint my character/ }).click();
+
+  // The first portrait hits a rate limit; the other two are unaffected.
+  const options = page.getByRole('radio', { name: /Portrait option/ });
+  await expect(options).toHaveCount(2);
+  await expect(alertIn(page)).toContainText('very busy right now');
+
+  await page.getByRole('button', { name: 'Try this one again' }).click();
+  await expect(options).toHaveCount(3);
+  await expect(alertIn(page)).toHaveCount(0);
+
+  await options.first().click();
+  await page.getByRole('button', { name: /Keep this character/ }).click();
+  await expect(page.getByRole('img', { name: 'Portrait of Bram' })).toBeVisible();
+});

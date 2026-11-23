@@ -283,6 +283,61 @@
   border-color: #b794f6;
 }
 
+.optionEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  aspect-ratio: 1;
+  padding: 1rem;
+  color: #c7b8ea;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  text-align: center;
+  cursor: default;
+}
+
+.optionEmpty p {
+  margin: 0;
+}
+
+.optionPainting {
+  border-style: dashed;
+  font-style: italic;
+}
+
+.spinner {
+  width: 38px;
+  height: 38px;
+  border: 3px solid rgba(183, 148, 246, 0.25);
+  border-top-color: #b794f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.retry {
+  padding: 0.45rem 0.9rem;
+  background: rgba(30, 25, 60, 0.7);
+  border: 1px solid rgba(183, 148, 246, 0.5);
+  border-radius: 10px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.retry:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .optionChosen {
   border-color: #ffd68c;
   box-shadow: 0 0 26px rgba(255, 214, 140, 0.55);

@@ -1,19 +1,19 @@
 import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/server/auth';
-import { assertAllowed, distilAppearance, paintScene } from '@/lib/server/ai';
+import { assertAllowed, distilAppearance } from '@/lib/server/ai';
 import { HttpError, readJson, route } from '@/lib/server/http';
 import { spendQuota } from '@/lib/server/quota';
-import { IMAGE_BUCKET, clearPortraitDrafts, draftFolder } from '@/lib/server/stories';
+import { IMAGE_BUCKET, clearPortraitDrafts, draftBriefPath } from '@/lib/server/stories';
 import { getAdmin } from '@/lib/supabase/server';
-import { CHARACTER_LIMITS, DEFAULT_ART_STYLE } from '@/lib/story/options';
-import { buildPortraitPrompt } from '@/lib/story/prompt';
+import { CHARACTER_LIMITS } from '@/lib/story/options';
 
-export const maxDuration = 60;
+export const maxDuration = 30;
 
 /**
  * Step one of the character creator: turn the reader's description into a fixed
- * look, then paint a few portrait options of it for them to choose from.
+ * look and open a set of portrait options. The portraits themselves are painted
+ * one request each, so a slow or failed one never costs the others.
  */
 export const POST = route(async (req: Request) => {
   const user = await requireUser(req);
@@ -47,29 +47,17 @@ export const POST = route(async (req: Request) => {
     appearance = description.replace(/\s+/g, ' ').trim().slice(0, 320);
   }
 
-  const prompt = buildPortraitPrompt(appearance, DEFAULT_ART_STYLE);
-  const painted = await Promise.allSettled(
-    Array.from({ length: CHARACTER_LIMITS.portraitOptions }, () => paintScene(prompt)),
-  );
-  const portraits = painted.flatMap((result) =>
-    result.status === 'fulfilled' ? [result.value] : [],
-  );
-  if (portraits.length === 0) {
-    console.error('all portraits failed:', painted);
-    throw new HttpError(502, "The illustrator couldn't paint your character. Please try again.");
-  }
-
-  // Only the newest set of options is kept.
+  // Only the newest set of options is kept. The look is stored beside them so
+  // each portrait is painted from what was agreed here, not from a later request.
   await clearPortraitDrafts(user.id);
   const draftId = randomUUID();
-  const bucket = getAdmin().storage.from(IMAGE_BUCKET);
-  const options: string[] = [];
-  for (const [index, bytes] of portraits.entries()) {
-    const path = `${draftFolder(user.id)}/${draftId}-${index}.webp`;
-    const { error } = await bucket.upload(path, bytes, { contentType: 'image/webp', upsert: true });
-    if (error) throw new Error(`upload portrait failed: ${error.message}`);
-    options.push(bucket.getPublicUrl(path).data.publicUrl);
-  }
+  const { error } = await getAdmin()
+    .storage.from(IMAGE_BUCKET)
+    .upload(draftBriefPath(user.id, draftId), appearance, {
+      contentType: 'text/plain; charset=utf-8',
+      upsert: true,
+    });
+  if (error) throw new Error(`save draft failed: ${error.message}`);
 
-  return NextResponse.json({ draftId, appearance, options });
+  return NextResponse.json({ draftId, appearance, options: CHARACTER_LIMITS.portraitOptions });
 });

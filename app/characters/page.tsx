@@ -9,6 +9,7 @@ import {
   deleteCharacter,
   draftCharacter,
   fetchMyCharacters,
+  paintPortrait,
   saveCharacter,
   type PortraitDraft,
 } from '@/lib/api';
@@ -18,6 +19,9 @@ import styles from './characters.module.css';
 
 const messageOf = (err: unknown, fallback: string) =>
   err instanceof ApiError ? err.message : fallback;
+
+/** One portrait option: on its way, painted, or failed with a reason. */
+type Portrait = { url: string | null; error: string | null };
 
 const PROMPTS = [
   'How old do they look, and how are they built?',
@@ -35,6 +39,7 @@ export default function CharactersPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [draft, setDraft] = useState<PortraitDraft | null>(null);
+  const [portraits, setPortraits] = useState<Portrait[]>([]);
   const [appearance, setAppearance] = useState('');
   const [chosen, setChosen] = useState<number | null>(null);
   const [painting, setPainting] = useState(false);
@@ -58,6 +63,18 @@ export default function CharactersPage() {
     };
   }, [userId, claimVersion]);
 
+  /** Paints one option and records how it went. */
+  const paintOne = async (draftId: string, option: number) => {
+    const set = (portrait: Portrait) =>
+      setPortraits((prev) => prev.map((p, i) => (i === option ? portrait : p)));
+    set({ url: null, error: null });
+    try {
+      set({ url: await paintPortrait(draftId, option), error: null });
+    } catch (err) {
+      set({ url: null, error: messageOf(err, "The illustrator couldn't paint this portrait.") });
+    }
+  };
+
   const paint = async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     setError(null);
@@ -67,11 +84,22 @@ export default function CharactersPage() {
       setDraft(next);
       setAppearance(next.appearance);
       setChosen(null);
+      setPortraits(Array.from({ length: next.options }, () => ({ url: null, error: null })));
+      // One at a time: each appears as it is finished, and a slow or refused
+      // portrait never holds up or spoils the others.
+      for (let option = 0; option < next.options; option++) await paintOne(next.draftId, option);
     } catch (err) {
-      setError(messageOf(err, "Couldn't paint your character. Please try again."));
+      setError(messageOf(err, "Couldn't start your portraits. Please try again."));
     } finally {
       setPainting(false);
     }
+  };
+
+  const retry = async (option: number) => {
+    if (!draft) return;
+    setPainting(true);
+    await paintOne(draft.draftId, option);
+    setPainting(false);
   };
 
   const keep = async () => {
@@ -87,6 +115,7 @@ export default function CharactersPage() {
       });
       setCharacters((prev) => [...(prev ?? []), character]);
       setDraft(null);
+      setPortraits([]);
       setChosen(null);
       setName('');
       setDescription('');
@@ -215,7 +244,7 @@ export default function CharactersPage() {
 
               <button type="submit" className={styles.primary} disabled={busy}>
                 {painting
-                  ? '🎨 Painting portraits… (about half a minute)'
+                  ? '🎨 Painting portraits, one at a time…'
                   : draft
                     ? '🎨 Paint a new set'
                     : '🎨 Paint my character'}
@@ -227,21 +256,44 @@ export default function CharactersPage() {
             <div className={styles.options}>
               <h3>Choose the one that feels right</h3>
               <div className={styles.optionGrid} role="radiogroup" aria-label="Portrait options">
-                {draft.options.map((url, index) => (
-                  <button
-                    key={url}
-                    type="button"
-                    role="radio"
-                    aria-checked={chosen === index}
-                    aria-label={`Portrait option ${index + 1}`}
-                    className={`${styles.option} ${chosen === index ? styles.optionChosen : ''}`}
-                    onClick={() => setChosen(index)}
-                    disabled={busy}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt="" />
-                  </button>
-                ))}
+                {portraits.map((portrait, index) =>
+                  portrait.url ? (
+                    <button
+                      key={index}
+                      type="button"
+                      role="radio"
+                      aria-checked={chosen === index}
+                      aria-label={`Portrait option ${index + 1}`}
+                      className={`${styles.option} ${chosen === index ? styles.optionChosen : ''}`}
+                      onClick={() => setChosen(index)}
+                      disabled={saving}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={portrait.url} alt="" />
+                    </button>
+                  ) : portrait.error ? (
+                    <div key={index} className={`${styles.option} ${styles.optionEmpty}`}>
+                      <p role="alert">{portrait.error}</p>
+                      <button
+                        type="button"
+                        className={styles.retry}
+                        onClick={() => retry(index)}
+                        disabled={busy}
+                      >
+                        Try this one again
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      key={index}
+                      className={`${styles.option} ${styles.optionEmpty} ${styles.optionPainting}`}
+                      role="status"
+                    >
+                      <div className={styles.spinner} aria-hidden="true" />
+                      <p>Painting portrait {index + 1}…</p>
+                    </div>
+                  ),
+                )}
               </div>
 
               <label htmlFor="character-appearance">
