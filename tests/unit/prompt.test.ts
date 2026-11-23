@@ -3,7 +3,7 @@ import { EMPTY_BIBLE, type StoryBible } from '@/lib/story/bible';
 import {
   OPENING_INSTRUCTION,
   buildImagePrompt,
-  ENDING_INSTRUCTION,
+  buildEndingInstruction,
   buildMessages,
   buildPortraitPrompt,
   buildSceneBrief,
@@ -16,6 +16,7 @@ const base = {
   action: null as string | null,
   bible: EMPTY_BIBLE,
   level: 'family' as const,
+  targetScenes: 10,
 };
 
 describe('buildMessages', () => {
@@ -158,7 +159,10 @@ describe('story options', () => {
   it('asks for a final page when the reader ends the story', () => {
     const scenes = [{ action: null, narration: 'Clouds drift by.' }];
     const ending = buildMessages({ ...base, scenes, action: 'ignored', ending: true });
-    expect(ending.at(-1)!.content).toBe(ENDING_INSTRUCTION);
+    expect(ending.at(-1)!.content).toBe(buildEndingInstruction('Clouds drift by.'));
+    expect(ending.at(-1)!.content).toContain('Echo an image or phrase from the first scene');
+    // The final page has its own brief; pacing notes are left out.
+    expect(ending[0].content).not.toContain('PACING:');
     // A story with no scenes yet still opens rather than ends.
     expect(buildMessages({ ...base, ending: true }).at(-1)!.content).toBe(OPENING_INSTRUCTION);
   });

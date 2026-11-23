@@ -47,6 +47,9 @@ export const serverEnv = {
   },
   openAIBaseUrl: read('OPENAI_BASE_URL'),
   textModel: read('OPENAI_TEXT_MODEL', 'OPENAI_CHAT_MODEL') ?? 'gpt-6-luna',
+  /** Used once per story for the hidden plan; a stronger model here is cheap. */
+  planModel:
+    read('OPENAI_PLAN_MODEL') ?? read('OPENAI_TEXT_MODEL', 'OPENAI_CHAT_MODEL') ?? 'gpt-6-luna',
   textReasoningEffort: read('OPENAI_TEXT_REASONING_EFFORT') ?? 'low',
   imageModel: read('OPENAI_IMAGE_MODEL') ?? 'gpt-image-2.6-flare',
   imageQuality: read('OPENAI_IMAGE_QUALITY') ?? 'low',

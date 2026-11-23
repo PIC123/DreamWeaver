@@ -15,6 +15,8 @@ insert into public.stories (id, user_id, setting, is_public) values
 insert into public.characters (user_id, name, appearance) values
   ('00000000-0000-0000-0000-0000000000a1', 'Alice hero', 'red coat'),
   ('00000000-0000-0000-0000-0000000000b2', 'Guest hero', 'blue hat');
+insert into public.story_plans (story_id, plan) values
+  ('10000000-0000-0000-0000-000000000002', '{"secretAnswer":"hidden"}');
 insert into public.scenes (story_id, position, narration) values
   ('10000000-0000-0000-0000-000000000001', 0, 'private scene'),
   ('10000000-0000-0000-0000-000000000002', 0, 'public scene'),
@@ -53,6 +55,7 @@ select set_config('request.jwt.claims', '{}', false);
 select pg_temp.expect('anon sees only public stories', (select count(*) from public.stories where id::text like '10000000-%'), 1);
 select pg_temp.expect('anon sees only public scenes', (select count(*) from public.scenes where narration in ('private scene','public scene','guest scene')), 1);
 select pg_temp.expect('anon sees no characters', (select count(*) from public.characters), 0);
+select pg_temp.expect_denied('anon cannot read the plan of a shared story', $$select 1 from public.story_plans$$);
 select pg_temp.expect_denied('anon cannot insert a story', $$insert into public.stories (setting) values ('x')$$);
 select pg_temp.expect_denied('anon cannot update a public story', $$update public.stories set setting = 'hacked' where is_public$$);
 select pg_temp.expect_denied('anon cannot read usage', $$select 1 from public.usage_events$$);
@@ -71,6 +74,7 @@ select pg_temp.expect_denied('guest cannot edit a character directly', $$update 
 select pg_temp.expect_denied('guest cannot update own story directly', $$update public.stories set is_public = true where setting = 'Guest private'$$);
 select pg_temp.expect_denied('guest cannot delete own story directly', $$delete from public.stories where setting = 'Guest private'$$);
 select pg_temp.expect_denied('guest cannot insert scenes', $$insert into public.scenes (story_id, position, narration) values ('10000000-0000-0000-0000-000000000003', 1, 'x')$$);
+select pg_temp.expect_denied('guest cannot read story plans', $$select 1 from public.story_plans$$);
 select pg_temp.expect_denied('guest cannot read claim tickets', $$select 1 from public.claim_tickets$$);
 reset role;
 

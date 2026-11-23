@@ -668,6 +668,22 @@
   cursor: pointer;
 }
 
+.endReady {
+  align-self: stretch;
+  padding: 0.7rem 1rem;
+  background: rgba(255, 214, 140, 0.12);
+  border: 1px solid rgba(255, 214, 140, 0.55);
+  border-radius: 12px;
+  color: #ffd68c;
+  font-family: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.endReady:hover {
+  background: rgba(255, 214, 140, 0.22);
+}
+
 .endButton:hover {
   color: #fff;
 }

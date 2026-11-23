@@ -5,19 +5,25 @@ export const READING_LEVELS = {
     label: 'Little readers',
     hint: 'Short, simple sentences',
     instruction:
-      'Write for a child of five to seven who is learning to read: very short sentences, everyday words, one idea per sentence, and gentle repetition. Use two or three sentences per turn. Keep choices to a few simple words.',
+      'Write for a child of five to seven who is learning to read: very short sentences that can be said in one breath, everyday words, one idea per sentence. Use two or three sentences per turn. Use a repeating phrase or pattern the child can join in with, changed a little each time. Setbacks are funny or surprising, never frightening: things tip over, get stuck, go missing. Keep choices to a few simple words.',
+    ceiling:
+      'Nothing truly scary: no monsters that mean harm, nobody hurt, nobody lost for long. Worry is always followed quickly by comfort.',
   },
   family: {
     label: 'Family',
     hint: 'For reading together',
     instruction:
-      'Write for a family reading together: clear, lively language a nine-year-old can follow and an adult will enjoy.',
+      'Write for a family reading together: clear, lively language a nine-year-old can follow and an adult will enjoy, with humour that works for both. Use two to four sentences per turn.',
+    ceiling:
+      'Gentle peril is welcome: chases, narrow escapes, a villain who is really a threat. No injury detail, no cruelty, and fear is always answered within the story.',
   },
   advanced: {
     label: 'Confident readers',
-    hint: 'Richer language',
+    hint: 'For teens and adults',
     instruction:
-      'Write for teenagers and adults: richer vocabulary, more layered description and subtler emotion, in three to five sentences per turn. The content still stays suitable for all ages.',
+      'Write for teenagers and adults: richer vocabulary, subtext, wit and subtler emotion, in three to five sentences per turn. Trust the reader: imply rather than explain, let characters want things they do not say, and let actions have costs that last. Choices should be real dilemmas where every option gives something up, and not everything needs to end happily.',
+    ceiling:
+      'Real stakes are welcome: menace, loss, betrayal, moral grey areas, melancholy. Keep it non-graphic: no gore, no sexual content, no cruelty for its own sake.',
   },
 } as const;
 

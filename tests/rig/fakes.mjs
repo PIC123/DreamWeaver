@@ -109,7 +109,7 @@ export function startSupabase({ port, postgrestPort, jwtSecret, serviceKey }) {
     email: u.email ?? '',
     is_anonymous: u.is_anonymous,
     app_metadata: {},
-    user_metadata: {},
+    user_metadata: u.metadata ?? {},
     identities: [],
     created_at: u.created_at,
   });
@@ -192,6 +192,7 @@ export function startSupabase({ port, postgrestPort, jwtSecret, serviceKey }) {
       const user = claims && users.get(claims.sub);
       if (!user) return authError(res, 401, 'invalid JWT');
       if (req.method === 'PUT' && body.password) user.password = body.password;
+      if (req.method === 'PUT' && body.data) user.metadata = { ...user.metadata, ...body.data };
       return sendJson(res, 200, userJson(user));
     }
 
@@ -401,6 +402,41 @@ export function startOpenAI({ port }) {
       if (url.pathname === '/v1/chat/completions') {
         const lastUser = [...body.messages].reverse().find((m) => m.role === 'user')?.content ?? '';
 
+        // The once-per-story planning call.
+        if (!body.stream && body.response_format?.json_schema?.name === 'story_plan') {
+          if (lastUser.includes('FAILPLAN')) {
+            return sendJson(res, 500, {
+              error: { message: 'rig: planner down', type: 'server_error' },
+            });
+          }
+          return sendJson(res, 200, {
+            id: 'chatcmpl-rig',
+            object: 'chat.completion',
+            choices: [
+              {
+                index: 0,
+                finish_reason: 'stop',
+                message: {
+                  role: 'assistant',
+                  content: JSON.stringify({
+                    want: 'to relight the harbour lamp',
+                    stake: 'the fishing boats cannot find their way home',
+                    opposition: 'the fog, which wants the harbour for itself',
+                    complications: [
+                      'the oil has gone',
+                      'the stairs give way',
+                      'the tide turns early',
+                    ],
+                    secret: 'who put the lamp out?',
+                    secretAnswer: 'the gull did, to hide its nest',
+                    theme: 'safety or kindness?',
+                  }),
+                },
+              },
+            ],
+          });
+        }
+
         if (!body.stream) {
           return sendJson(res, 200, {
             id: 'chatcmpl-rig',
@@ -480,6 +516,7 @@ export function startOpenAI({ port }) {
             : [],
           itemsLost: lastUser.includes('Wait quietly') ? ['brass key'] : [],
           threads: [`Find the lamp (${sceneNumber})`],
+          readyToEnd: isEnding || sceneNumber >= 3,
         });
 
         res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store' });

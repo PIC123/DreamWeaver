@@ -20,6 +20,8 @@ export type StoryState = {
   notice: string | null;
   /** Names of items picked up in the most recent turn, for a moment of fanfare. */
   newItems: string[];
+  /** True when the narrator thinks the story could close on its next page. */
+  readyToEnd: boolean;
 };
 
 type Action =
@@ -28,7 +30,13 @@ type Action =
   | { type: 'failed'; message: string }
   | { type: 'turn-started'; action: string | null }
   | { type: 'turn-delta'; text: string }
-  | { type: 'turn-finished'; scene: Scene; bible: StoryBible; finished?: boolean }
+  | {
+      type: 'turn-finished';
+      scene: Scene;
+      bible: StoryBible;
+      finished?: boolean;
+      readyToEnd?: boolean;
+    }
   | { type: 'turn-failed'; message: string }
   | { type: 'paint-started'; sceneId: string }
   | { type: 'paint-finished'; sceneId: string; imageUrl: string }
@@ -45,6 +53,7 @@ const initialState: StoryState = {
   painting: [],
   notice: null,
   newItems: [],
+  readyToEnd: false,
 };
 
 export function storyReducer(state: StoryState, action: Action): StoryState {
@@ -65,6 +74,7 @@ export function storyReducer(state: StoryState, action: Action): StoryState {
       return {
         ...state,
         pending: null,
+        readyToEnd: action.readyToEnd === true,
         story: state.story
           ? {
               ...state.story,
@@ -193,12 +203,12 @@ export function useStory(storyId: string) {
       turnInFlight.current = true;
       dispatch({ type: 'turn-started', action });
       try {
-        const { scene, bible, finished } = await api.takeTurn(
+        const { scene, bible, finished, readyToEnd } = await api.takeTurn(
           storyId,
           { action, expectedPosition: scenesRef.current.length, ending },
           (text) => dispatch({ type: 'turn-delta', text }),
         );
-        dispatch({ type: 'turn-finished', scene, bible, finished });
+        dispatch({ type: 'turn-finished', scene, bible, finished, readyToEnd });
         if (scene.canPaint) {
           autoPainted.current.add(scene.id);
           void paint(scene);

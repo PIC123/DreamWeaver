@@ -106,11 +106,17 @@ export default function StoryView({ story: s }: Props) {
           </div>
         )}
         <ActionInput disabled={s.busy || !latest} onSubmit={act} placeholder={placeholder} />
-        {s.scenes.length >= 2 && !s.busy && (
-          <button type="button" className={styles.endButton} onClick={endStory}>
-            🌙 Bring the story to a close
-          </button>
-        )}
+        {s.scenes.length >= 2 &&
+          !s.busy &&
+          (s.readyToEnd ? (
+            <button type="button" className={styles.endReady} onClick={endStory}>
+              🌙 This feels like an ending. Bring the story to a close
+            </button>
+          ) : (
+            <button type="button" className={styles.endButton} onClick={endStory}>
+              🌙 Bring the story to a close
+            </button>
+          ))}
       </>
     );
 

@@ -38,6 +38,7 @@ const ready = (scenes: Scene[]): StoryState =>
       painting: [],
       notice: null,
       newItems: [],
+      readyToEnd: false,
     },
     { type: 'loaded', story, scenes },
   );
@@ -139,5 +140,18 @@ describe('storyReducer', () => {
     expect(state.story?.finished).toBe(true);
     state = storyReducer(state, { type: 'paint-finished', sceneId: 'scene-1', imageUrl: 'x' });
     expect(state.story?.finished).toBe(true);
+  });
+
+  it('follows the narrator on whether the story is ready to end', () => {
+    let state = ready([scene(0)]);
+    state = storyReducer(state, {
+      type: 'turn-finished',
+      scene: scene(1),
+      bible: EMPTY_BIBLE,
+      readyToEnd: true,
+    });
+    expect(state.readyToEnd).toBe(true);
+    state = storyReducer(state, { type: 'turn-finished', scene: scene(2), bible: EMPTY_BIBLE });
+    expect(state.readyToEnd).toBe(false);
   });
 });

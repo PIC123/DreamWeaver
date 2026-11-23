@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import Onboarding from '@/components/account/Onboarding';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import './globals.css';
@@ -23,7 +24,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <ErrorBoundary>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            {children}
+            <Onboarding />
+          </AuthProvider>
         </ErrorBoundary>
       </body>
     </html>

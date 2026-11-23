@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthProvider';
+import PreferencesDialog from '@/components/account/PreferencesDialog';
 import AuthModal, { type AuthMode } from '@/components/auth/AuthModal';
 
 /** Sign in / sign up buttons for guests; an account menu for members. */
@@ -10,6 +11,7 @@ export default function AccountMenu({ showShelfLink = true }: { showShelfLink?: 
   const { user, isGuest, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [modal, setModal] = useState<AuthMode | null>(null);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
 
   return (
     <>
@@ -61,6 +63,17 @@ export default function AccountMenu({ showShelfLink = true }: { showShelfLink?: 
                 className="user-menu-item"
                 onClick={() => {
                   setMenuOpen(false);
+                  setPreferencesOpen(true);
+                }}
+              >
+                Preferences
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="user-menu-item"
+                onClick={() => {
+                  setMenuOpen(false);
                   void signOut();
                 }}
               >
@@ -72,6 +85,9 @@ export default function AccountMenu({ showShelfLink = true }: { showShelfLink?: 
       )}
 
       {modal && <AuthModal mode={modal} onClose={() => setModal(null)} />}
+      {preferencesOpen && (
+        <PreferencesDialog mode="settings" onClose={() => setPreferencesOpen(false)} />
+      )}
     </>
   );
 }

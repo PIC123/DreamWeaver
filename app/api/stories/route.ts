@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/server/auth';
 import { assertAllowed } from '@/lib/server/ai';
 import { HttpError, isUuid, readJson, route } from '@/lib/server/http';
+import { createPlan } from '@/lib/server/plans';
 import { getAdmin } from '@/lib/supabase/server';
 import { EMPTY_BIBLE, HERO_NAME, type StoryBible } from '@/lib/story/bible';
 import {
@@ -44,6 +45,7 @@ export const POST = route(async (req: Request) => {
   }
 
   // A saved character steps into the story with their look already fixed.
+  let heroLook: string | null = null;
   let bible: StoryBible = EMPTY_BIBLE;
   if (body.characterId !== undefined && body.characterId !== null) {
     if (typeof body.characterId !== 'string' || !isUuid(body.characterId)) {
@@ -57,6 +59,7 @@ export const POST = route(async (req: Request) => {
       .maybeSingle();
     if (characterError) throw new Error(`load character failed: ${characterError.message}`);
     if (!character) throw new HttpError(400, 'Unknown character.');
+    heroLook = `${character.name as string}: ${character.appearance as string}`;
     bible = {
       ...EMPTY_BIBLE,
       characters: [
@@ -69,18 +72,21 @@ export const POST = route(async (req: Request) => {
     };
   }
 
+  const level = isReadingLevel(body.readingLevel) ? body.readingLevel : DEFAULT_READING_LEVEL;
   const { data, error } = await admin
     .from('stories')
     .insert({
       user_id: user.id,
       setting,
       bible,
-      reading_level: isReadingLevel(body.readingLevel) ? body.readingLevel : DEFAULT_READING_LEVEL,
+      reading_level: level,
       art_style: isArtStyle(body.artStyle) ? body.artStyle : DEFAULT_ART_STYLE,
     })
     .select('id')
     .single();
   if (error) throw new Error(`create story failed: ${error.message}`);
+
+  await createPlan({ storyId: data.id as string, setting, level, heroLook });
 
   return NextResponse.json({ id: data.id as string }, { status: 201 });
 });

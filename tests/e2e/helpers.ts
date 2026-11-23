@@ -30,6 +30,8 @@ export async function signUp(page: Page, email: string, password = 'correct-hors
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Create Account' }).click();
+  // New members are welcomed with their preferences; most tests are not about that.
+  await page.getByRole('button', { name: 'Skip for now' }).click();
 }
 
 /** The app's own alert message (Next.js adds an empty route announcer with the same role). */

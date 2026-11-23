@@ -93,7 +93,7 @@ test('reading level and art style shape the words and the pictures', async ({ pa
   await expect(page.getByRole('img', { name: /^Illustration:/ })).toBeVisible();
 
   const calls = await callsFor(request, setting);
-  const narrator = calls.find((c) => c.path === '/v1/chat/completions')!;
+  const narrator = calls.find((c) => c.path === '/v1/chat/completions' && c.body.stream === true)!;
   expect((narrator.body.messages as { content: string }[])[0].content).toContain('five to seven');
   const illustrator = calls.find((c) => c.path === '/v1/images/generations')!;
   expect(String(illustrator.body.prompt)).toMatch(/^Detailed 16-bit pixel art/);
@@ -214,4 +214,75 @@ test('a scene is still illustrated when the illustrator is briefly busy', async 
   await page.getByRole('button', { name: 'Send' }).click();
   await expect(page.getByRole('img', { name: /^Illustration: Scene 2/ })).toBeVisible();
   await expect(alertIn(page)).toHaveCount(0);
+});
+
+test('each story gets a private plan that paces the narrator and that no browser can read', async ({
+  page,
+  request,
+}) => {
+  const setting = `A fogbound harbour ${Date.now()}`;
+  const storyId = await startStory(page, setting);
+  const calls = await callsFor(request, setting);
+
+  // One planning call, built on ingredients the application chose.
+  const planning = calls.filter(
+    (c) =>
+      (c.body.response_format as { json_schema?: { name?: string } })?.json_schema?.name ===
+      'story_plan',
+  );
+  expect(planning).toHaveLength(1);
+  const brief = (planning[0].body.messages as { content: string }[])[1].content;
+  expect(brief).toMatch(/Emotional shape: .+/);
+  expect(brief).toMatch(/An unusual ingredient to work in: .+/);
+  expect(brief).toMatch(/Length: about (9|1[0-2]) short scenes/);
+
+  // The narrator gets the plan, the secret's answer and where in the story it is.
+  const opening = calls.find((c) => c.body.stream === true)!;
+  const system = (opening.body.messages as { content: string }[])[0].content;
+  expect(system).toContain('STORY PLAN (private notes');
+  expect(system).toContain('the gull did, to hide its nest');
+  expect(system).toMatch(/PACING: this is scene 1 of about (9|1[0-2])\. OPENING\./);
+
+  await choose(page, /Go north \(1\)/, 2);
+  const second = (await callsFor(request, setting)).filter((c) => c.body.stream === true)[1];
+  expect((second.body.messages as { content: string }[])[0].content).toContain('RISING TROUBLE');
+
+  // The reader's own session cannot read the plan, directly or through the story.
+  const leak = await page.evaluate(
+    async ({ id, supabase }) => {
+      const key = Object.keys(localStorage).find((k) => k.endsWith('-auth-token'))!;
+      const token = JSON.parse(localStorage.getItem(key)!).access_token as string;
+      const res = await fetch(`${supabase}/rest/v1/story_plans?story_id=eq.${id}`, {
+        headers: { Authorization: `Bearer ${token}`, apikey: token },
+      });
+      return { status: res.status, body: await res.text() };
+    },
+    { id: storyId, supabase: RIG.supabase },
+  );
+  expect(leak.status).toBeGreaterThanOrEqual(400);
+  expect(leak.body).not.toContain('gull');
+  expect(await page.content()).not.toContain('to hide its nest');
+});
+
+test('a story still starts, with its own ingredients, when planning fails', async ({
+  page,
+  request,
+}) => {
+  const setting = `FAILPLAN a quiet orchard ${Date.now()}`;
+  await startStory(page, setting);
+  const opening = (await callsFor(request, setting)).find((c) => c.body.stream === true)!;
+  const system = (opening.body.messages as { content: string }[])[0].content;
+  expect(system).toContain('STORY PLAN (private notes');
+  expect(system).toContain('A trouble to build on:');
+  expect(system).toContain('PACING: this is scene 1');
+});
+
+test('the reader is nudged to finish when the narrator says the story is ready to end', async ({
+  page,
+}) => {
+  await startStory(page);
+  await choose(page, /Go north \(1\)/, 2);
+  await expect(page.getByRole('button', { name: /This feels like an ending/ })).toHaveCount(0);
+  await choose(page, /Go north \(2\)/, 3);
+  await expect(page.getByRole('button', { name: /This feels like an ending/ })).toBeVisible();
 });

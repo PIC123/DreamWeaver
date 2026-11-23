@@ -77,6 +77,39 @@ see it as the **Journal** and the inventory under the illustration.
 Stories written before this existed start with an empty bible and fill it in as they
 continue.
 
+## How the narrator is guided
+
+Three things shape every story, all based on the research in
+[`reports/Story craft for DreamWeaver.md`](../reports/Story%20craft%20for%20DreamWeaver.md):
+
+- **A private plan.** When a story starts, one extra model call writes the narrator's
+  notes: what the reader's character wants, what is at stake, who or what is in the way,
+  three troubles waiting to happen, and a secret with its answer decided in advance. The
+  plan is stored where no browser can read it. If the call fails the story still starts.
+- **Ingredients chosen by the app.** So that stories differ, the app (not the model) picks
+  each story's emotional shape, tone, a kind of trouble, an unusual ingredient, a handful
+  of names and a target length. The lists are in `lib/story/plan.ts`.
+- **Pacing.** The app counts scenes and tells the narrator which phase the story is in
+  (opening, rising trouble, deepening, climax, landing). Trouble may not be resolved before
+  the climax, and no new mysteries start after the midpoint. When the narrator judges the
+  story ready to end, the reader is nudged to bring it to a close; they are never forced.
+
+The narrator's rules for each scene and for the three choices are in `lib/story/prompt.ts`.
+`OPENAI_PLAN_MODEL` sets the model for the once-per-story plan; it defaults to the text
+model, and a stronger model here costs little because it runs once.
+
+To compare stories before and after a change, `scripts/replay.mjs` plays a fixed set of
+premises with a fixed choice policy against any running copy of the app and writes the
+transcripts to a file. It requests no illustrations. See the comment at the top of the
+script for options.
+
+## Preferences
+
+New members are welcomed with two questions (who the stories are for, and a favourite art
+style) and an invitation to create a character. Preferences are stored with the account
+and can be changed from the account menu. Guests' last choices are remembered in their
+browser. Either way they are only starting values: every story can still choose its own.
+
 ## Story options
 
 When a story starts the reader can choose three things, which then stay fixed for that story:

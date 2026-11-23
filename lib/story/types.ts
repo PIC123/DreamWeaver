@@ -48,7 +48,7 @@ export type Turn = {
 /** Lines of the newline-delimited JSON stream from POST /api/stories/:id/turns. */
 export type TurnEvent =
   | { type: 'delta'; text: string }
-  | { type: 'scene'; scene: Scene; bible: StoryBible; finished: boolean }
+  | { type: 'scene'; scene: Scene; bible: StoryBible; finished: boolean; readyToEnd: boolean }
   | { type: 'error'; message: string };
 
 export const LIMITS = {

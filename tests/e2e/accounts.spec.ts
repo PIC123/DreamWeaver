@@ -79,3 +79,59 @@ test('the starfield holds still while typing, and the dice suggests a setting', 
     'A clockwork garden beneath a paper moon',
   );
 });
+
+test('a new member is welcomed with preferences and a nudge to create a character', async ({
+  page,
+}) => {
+  const email = uniqueEmail();
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Sign Up' }).click();
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Password').fill('correct-horse');
+  await page.getByRole('button', { name: 'Create Account' }).click();
+
+  const welcome = page.getByRole('dialog', { name: 'Welcome to DreamWeaver' });
+  await expect(welcome).toBeVisible();
+  await welcome.getByRole('radio', { name: /Little readers/ }).check();
+  await welcome.getByLabel('Favourite art style').selectOption({ label: 'Pixel art' });
+  await welcome.getByRole('button', { name: 'Save and continue' }).click();
+
+  // Step two: the invitation to create a character, which can be declined.
+  const nudge = page.getByRole('dialog', { name: 'Who will you be?' });
+  await expect(nudge.getByRole('link', { name: 'Create my character' })).toHaveAttribute(
+    'href',
+    '/characters',
+  );
+  await nudge.getByRole('button', { name: 'Maybe later' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  // New stories start from those choices, and they survive a reload without asking again.
+  await page.goto('/?createNew=1');
+  await expect(page.getByLabel('Reading level')).toHaveValue('early');
+  await expect(page.getByLabel('Art style')).toHaveValue('pixel');
+  await page.reload();
+  await expect(page.getByLabel('Reading level')).toHaveValue('early');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  // They can be changed later from the account menu.
+  await page.getByRole('button', { name: email }).click();
+  await page.getByRole('menuitem', { name: 'Preferences' }).click();
+  const settings = page.getByRole('dialog', { name: 'Your Preferences' });
+  await settings.getByRole('radio', { name: /Confident readers/ }).check();
+  await settings.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByLabel('Reading level')).toHaveValue('advanced');
+});
+
+test("a guest's last story choices become their defaults", async ({ page }) => {
+  await page.goto('/');
+  await page.getByLabel('Reading level').selectOption('advanced');
+  await page.getByLabel('Art style').selectOption('ink');
+  await page.getByLabel('Begin Your Journey').fill('A drowned library');
+  await page.getByRole('button', { name: /Enter the Realm/ }).click();
+  await page.waitForURL(/\/story\//);
+
+  await page.goto('/');
+  await expect(page.getByLabel('Reading level')).toHaveValue('advanced');
+  await expect(page.getByLabel('Art style')).toHaveValue('ink');
+});

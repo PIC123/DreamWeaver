@@ -2,10 +2,12 @@ import { requireUser } from '@/lib/server/auth';
 import { assertAllowed, streamTurn } from '@/lib/server/ai';
 import { HttpError, readJson, route } from '@/lib/server/http';
 import { spendQuota } from '@/lib/server/quota';
+import { loadPlan } from '@/lib/server/plans';
 import { loadOwnedStory, loadScenes } from '@/lib/server/stories';
 import { SCENE_COLUMNS, toScene, type SceneRow } from '@/lib/story/rows';
 import { getAdmin } from '@/lib/supabase/server';
 import { mergeBible, normalizeBible } from '@/lib/story/bible';
+import { DEFAULT_TARGET_SCENES } from '@/lib/story/plan';
 import { buildMessages, buildSceneBrief } from '@/lib/story/prompt';
 import { DEFAULT_READING_LEVEL, isReadingLevel } from '@/lib/story/options';
 import { LIMITS, type TurnEvent } from '@/lib/story/types';
@@ -62,12 +64,16 @@ export const POST = route(async (req: Request, ctx: Ctx) => {
   await spendQuota(user, 'turn');
 
   const bible = normalizeBible(story.bible);
+  const level = isReadingLevel(story.reading_level) ? story.reading_level : DEFAULT_READING_LEVEL;
+  const plan = await loadPlan(story.id, level);
   const messages = buildMessages({
     setting: story.setting ?? '',
     scenes,
     action,
     bible,
-    level: isReadingLevel(story.reading_level) ? story.reading_level : DEFAULT_READING_LEVEL,
+    level,
+    plan,
+    targetScenes: plan?.targetScenes ?? DEFAULT_TARGET_SCENES,
     ending,
   });
   const encoder = new TextEncoder();
@@ -124,6 +130,7 @@ export const POST = route(async (req: Request, ctx: Ctx) => {
             scene: toScene(data as SceneRow),
             bible: nextBible,
             finished: ending,
+            readyToEnd: ending || turn.readyToEnd,
           });
         }
       } catch (err) {

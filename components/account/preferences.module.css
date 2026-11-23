@@ -1,0 +1,90 @@
+.dialog {
+  max-width: 520px;
+}
+
+.group {
+  margin: 0 0 1.4rem;
+  padding: 0;
+  border: none;
+}
+
+.group legend,
+.group > label {
+  display: block;
+  margin-bottom: 0.6rem;
+  padding: 0;
+  color: #e0b3ff;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+}
+
+.levels {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.level {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.75rem;
+  align-items: center;
+  padding: 0.8rem 1rem;
+  background: rgba(15, 12, 41, 0.6);
+  border: 1px solid rgba(183, 148, 246, 0.3);
+  border-radius: 12px;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.level input {
+  grid-row: span 2;
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: #8b6fe8;
+}
+
+.levelChosen {
+  background: rgba(102, 126, 234, 0.2);
+  border-color: #b794f6;
+}
+
+.levelName {
+  color: #fff;
+  font-size: 1rem;
+}
+
+.levelHint {
+  color: #c7b8ea;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.select {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  background: rgba(15, 12, 41, 0.6);
+  border: 1px solid rgba(183, 148, 246, 0.3);
+  border-radius: 12px;
+  color: #fff;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1rem;
+}
+
+.select option {
+  background: #1a1640;
+}
+
+.portraitHint {
+  margin: 0.5rem 0 1.25rem;
+  font-size: 3.5rem;
+  text-align: center;
+}
+
+.linkButton {
+  display: block;
+  box-sizing: border-box;
+  text-align: center;
+  text-decoration: none;
+}

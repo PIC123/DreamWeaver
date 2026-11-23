@@ -46,7 +46,9 @@ test('the server, not the browser, decides what the model is asked', async ({ pa
 
   const chat = calls.find(
     (c) =>
-      c.path === '/v1/chat/completions' && JSON.stringify(c.body).includes('moonlit orchard 7731'),
+      c.path === '/v1/chat/completions' &&
+      c.body.stream === true &&
+      JSON.stringify(c.body).includes('moonlit orchard 7731'),
   )!;
   const messages = chat.body.messages as { role: string; content: string }[];
   expect(messages[0].role).toBe('system');
@@ -161,7 +163,9 @@ test('the story keeps a journal, an inventory and consistent character looks', a
   const mine = calls.filter((c) => JSON.stringify(c.body).includes(setting));
 
   // The narrator was shown the bible on the second turn.
-  const secondTurn = mine.filter((c) => c.path === '/v1/chat/completions')[1];
+  const secondTurn = mine.filter(
+    (c) => c.path === '/v1/chat/completions' && c.body.stream === true,
+  )[1];
   const system = (secondTurn.body.messages as { content: string }[])[0].content;
   expect(system).toContain('STORY BIBLE');
   expect(system).toContain('Old Gull (lighthouse keeper): a grey gull wearing a tiny blue cap');

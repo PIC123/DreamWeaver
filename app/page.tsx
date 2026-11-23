@@ -6,15 +6,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import AccountMenu from '@/components/ui/AccountMenu';
 import Starfield from '@/components/ui/Starfield';
+import { usePreferences } from '@/hooks/usePreferences';
 import { ApiError, createStory, fetchMyCharacters, randomSetting } from '@/lib/api';
-import {
-  ART_STYLES,
-  DEFAULT_ART_STYLE,
-  DEFAULT_READING_LEVEL,
-  READING_LEVELS,
-  type ArtStyle,
-  type ReadingLevel,
-} from '@/lib/story/options';
+import { ART_STYLES, READING_LEVELS, type ArtStyle, type ReadingLevel } from '@/lib/story/options';
 import { LIMITS, type Character } from '@/lib/story/types';
 
 export default function LandingPage() {
@@ -41,10 +35,14 @@ function Landing() {
 
   const [setting, setSetting] = useState('');
   const [link, setLink] = useState('');
-  const [readingLevel, setReadingLevel] = useState<ReadingLevel>(DEFAULT_READING_LEVEL);
-  const [artStyle, setArtStyle] = useState<ArtStyle>(DEFAULT_ART_STYLE);
+  // Each select starts from the reader's preference until they change it here.
+  const { preferences, save: savePreferences } = usePreferences();
+  const [pickedLevel, setReadingLevel] = useState<ReadingLevel | null>(null);
+  const [pickedStyle, setArtStyle] = useState<ArtStyle | null>(null);
+  const [pickedCharacter, setCharacterId] = useState<string | null>(null);
+  const readingLevel = pickedLevel ?? preferences.readingLevel;
+  const artStyle = pickedStyle ?? preferences.artStyle;
   const [characters, setCharacters] = useState<Character[]>([]);
-  const [characterId, setCharacterId] = useState('');
   const [starting, setStarting] = useState(false);
   const [rolling, setRolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +68,11 @@ function Landing() {
     };
   }, [userId, claimVersion]);
 
+  const characterId =
+    [pickedCharacter, preferences.characterId].find(
+      (id) => id !== null && (id === '' || characters.some((c) => c.id === id)),
+    ) ?? '';
+
   const ready = !loading && !!user;
 
   const begin = async (e: FormEvent<HTMLFormElement>) => {
@@ -84,8 +87,11 @@ function Landing() {
           setting,
           readingLevel,
           artStyle,
-          characterId: characters.some((c) => c.id === characterId) ? characterId : null,
+          characterId: characterId || null,
         });
+        // Guests have no settings page, so their last choices become their defaults.
+        if (isGuest)
+          void savePreferences({ readingLevel, artStyle, characterId: characterId || null });
         router.push(`/story/${id}`);
       } catch (err) {
         setError(

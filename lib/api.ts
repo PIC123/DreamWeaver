@@ -139,7 +139,13 @@ export const prepareClaim = () =>
 export const claimStories = (ticket: string) =>
   postJson<{ claimed: number }>('/api/claim', { ticket }).then((r) => r.claimed);
 
-export type TurnResult = { scene: Scene; bible: StoryBible; finished: boolean };
+export type TurnResult = {
+  scene: Scene;
+  bible: StoryBible;
+  finished: boolean;
+  /** The narrator thinks the story could close on its next page. */
+  readyToEnd: boolean;
+};
 
 /** Requests the next scene, calling `onDelta` with narration text as it streams in. */
 export async function takeTurn(
@@ -163,7 +169,12 @@ export async function takeTurn(
     const event = JSON.parse(line) as TurnEvent;
     if (event.type === 'delta') onDelta(event.text);
     else if (event.type === 'scene') {
-      result = { scene: event.scene, bible: event.bible, finished: event.finished };
+      result = {
+        scene: event.scene,
+        bible: event.bible,
+        finished: event.finished,
+        readyToEnd: event.readyToEnd,
+      };
     } else throw new ApiError(event.message.includes('moved on') ? 409 : 502, event.message);
   };
 

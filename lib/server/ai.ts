@@ -2,6 +2,14 @@ import 'server-only';
 import OpenAI from 'openai';
 import { serverEnv } from '@/lib/env.server';
 import { readPartialString } from '@/lib/story/partialJson';
+import {
+  buildPlanMessages,
+  normalizeDraft,
+  planJsonSchema,
+  type PlanDraft,
+  type StorySeeds,
+} from '@/lib/story/plan';
+import type { ReadingLevel } from '@/lib/story/options';
 import { parseTurn, turnJsonSchema, type ParsedTurn } from '@/lib/story/prompt';
 import { HttpError } from './http';
 
@@ -206,4 +214,34 @@ export async function distilAppearance(name: string, description: string): Promi
     throw new Error(`Empty appearance (finish_reason: ${res.choices[0]?.finish_reason ?? 'none'})`);
   }
   return appearance.slice(0, 320);
+}
+
+/**
+ * Writes the narrator's private plan for a new story: what is wanted, what is
+ * at stake, the troubles in store and the answer to the story's open question.
+ */
+export async function draftPlan(input: {
+  setting: string;
+  level: ReadingLevel;
+  seeds: StorySeeds;
+  heroLook: string | null;
+}): Promise<PlanDraft> {
+  const res = await openai().chat.completions.create(
+    {
+      model: serverEnv.planModel,
+      messages: buildPlanMessages(input),
+      response_format: { type: 'json_schema', json_schema: planJsonSchema },
+      max_completion_tokens: 4000,
+      ...reasoning(),
+    },
+    // A story must never wait long on its plan; without one it still gets code-chosen ingredients.
+    { timeout: 20_000, maxRetries: 0 },
+  );
+  const raw = res.choices[0]?.message?.content;
+  if (!raw) {
+    throw new Error(`Empty plan (finish_reason: ${res.choices[0]?.finish_reason ?? 'none'})`);
+  }
+  const draft = normalizeDraft(JSON.parse(raw));
+  if (!draft.want || draft.complications.length === 0) throw new Error('Unusable plan');
+  return draft;
 }

@@ -35,7 +35,7 @@ app/
     claim/                      POST   move guest stories into an account
 components/                     auth, story screens, the page-turning book
 hooks/useStory.ts               all story state for the screens
-lib/story/                      prompts, story bible, types, streaming-JSON reader (shared)
+lib/story/                      prompts, story plan and pacing, story bible, types (shared)
 lib/server/                     auth, quotas, OpenAI and database helpers (server only)
 supabase/schema.sql             the whole database: tables, access rules, storage
 tests/                          unit, database and end-to-end tests
@@ -58,6 +58,7 @@ See **[docs/SETUP.md](docs/SETUP.md)** for the full walkthrough. In short:
 | `npm run build` / `npm start` | Production build / serve it |
 | `npm run lint` · `npm run typecheck` | ESLint · TypeScript |
 | `npm test` | Unit tests (Vitest) |
+| `node scripts/replay.mjs` | Plays fixed premises against a running app and saves the transcripts, for before/after comparisons |
 | `npm run test:db` | Applies `supabase/schema.sql` to a scratch Postgres and checks the access rules and the upgrade path |
 | `npm run test:e2e` | Browser tests of the whole app against local stand-ins (no real API keys needed) |
 
